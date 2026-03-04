@@ -1,4 +1,4 @@
-import { AppData } from '../types';
+import type { AppData } from '../types';
 
 // 型定義がない環境でもエラーにならないようグローバル変数を宣言
 declare var google: any;
@@ -13,20 +13,36 @@ let tokenClient: any;
 let isGapiLoaded = false;
 let isGsiLoaded = false;
 
+// 初期化の二重実行を防ぐためのPromiseキャッシュ
+let initPromise: Promise<void> | null = null;
+
 /**
- * 外部のスクリプトを動的に読み込むユーティリティ関数
+ * 外部のスクリプトを動的に読み込むユーティリティ関数（堅牢化版）
  */
 const loadScript = (src: string): Promise<void> => {
   return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) {
-      resolve();
+    const existingScript = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement;
+    
+    if (existingScript) {
+      // 既に読み込みが完了している場合
+      if (existingScript.getAttribute('data-loaded') === 'true') {
+        resolve();
+      } else {
+        // 読み込み中の場合はイベントリスナーを追加して完了を待つ
+        existingScript.addEventListener('load', () => resolve());
+        existingScript.addEventListener('error', () => reject(new Error(`Script load error: ${src}`)));
+      }
       return;
     }
+
     const script = document.createElement('script');
     script.src = src;
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve();
+    script.onload = () => {
+      script.setAttribute('data-loaded', 'true');
+      resolve();
+    };
     script.onerror = () => reject(new Error(`Script load error: ${src}`));
     document.body.appendChild(script);
   });
@@ -41,41 +57,52 @@ export const initGoogleApi = async (onAuthSuccess: (email: string) => void) => {
     return;
   }
 
-  try {
-    // 1. GAPIとGSIのスクリプトを読み込み
-    await Promise.all([
-      loadScript('https://apis.google.com/js/api.js'),
-      loadScript('https://accounts.google.com/gsi/client')
-    ]);
+  // ReactのStrictMode等で複数回呼ばれても、API初期化処理自体は1回だけ実行する
+  if (!initPromise) {
+    initPromise = (async () => {
+      // 1. GAPIとGSIのスクリプトを読み込み
+      await Promise.all([
+        loadScript('https://apis.google.com/js/api.js'),
+        loadScript('https://accounts.google.com/gsi/client')
+      ]);
 
-    // 2. GAPIクライアントの初期化
-    await new Promise<void>((resolve) => {
-      gapi.load('client', async () => {
-        await gapi.client.init({
-          discoveryDocs: [DISCOVERY_DOC],
+      // 2. GAPIクライアントの初期化
+      await new Promise<void>((resolve) => {
+        gapi.load('client', async () => {
+          await gapi.client.init({
+            discoveryDocs: [DISCOVERY_DOC],
+          });
+          isGapiLoaded = true;
+          resolve();
         });
-        isGapiLoaded = true;
-        resolve();
       });
-    });
 
-    // 3. GSI（トークンクライアント）の初期化
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: async (response: any) => {
-        if (response.error !== undefined) {
-          throw response;
-        }
-        // ログイン成功時にユーザー情報を取得（簡易的にトークンから取得、またはGoogle People API等を使う手もあるが、
-        // 今回はシンプルに認証完了のフラグとして扱う。厳密なメールアドレスはJWT(Credential)から取得可能）
-        isGsiLoaded = true;
-        onAuthSuccess('authenticated_user'); // 簡略化のため固定値。実運用ではデコードしたemailを渡す
-      },
-    });
+      // 3. GSI（トークンクライアント）の初期化
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: async (response: any) => {
+          if (response.error !== undefined) {
+            throw response;
+          }
+          isGsiLoaded = true;
+          // グローバルに保持した最新のコールバックを実行
+          if (typeof window !== 'undefined' && (window as any)._onGoogleAuthSuccess) {
+            (window as any)._onGoogleAuthSuccess('authenticated_user');
+          }
+        },
+      });
+    })();
+  }
 
+  try {
+    // コンポーネントが再レンダリングされても最新の関数を呼べるように保持
+    (window as any)._onGoogleAuthSuccess = onAuthSuccess;
+    await initPromise;
   } catch (error) {
+    initPromise = null; // 失敗した場合は再試行できるようにリセット
     console.error('Google API の初期化に失敗しました:', error);
+    throw error;
   }
 };
 

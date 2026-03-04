@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AppData, YearData } from '../types';
+import type { AppData, YearData } from '../types';
 
 interface AppState {
   // 認証状態

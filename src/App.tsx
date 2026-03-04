@@ -1,5 +1,5 @@
-import React from 'react';
 import { useStore } from './hooks/useStore';
+// React import is not required in newer JSX setups and was causing a TS6133 unused error.
 import { LoginScreen } from './features/auth/LoginScreen';
 import { logout } from './api/drive';
 
