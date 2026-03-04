@@ -10,8 +10,6 @@ const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 const FILE_NAME = 'donburi_data.json';
 
 let tokenClient: any;
-let isGapiLoaded = false;
-let isGsiLoaded = false;
 
 // 初期化の二重実行を防ぐためのPromiseキャッシュ
 let initPromise: Promise<void> | null = null;
