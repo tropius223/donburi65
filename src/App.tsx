@@ -17,7 +17,7 @@ function App() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   // 初回ロード判定用
   const isInitialLoad = useRef(true);
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleLogout = () => {
     logout();
@@ -77,13 +77,13 @@ function App() {
   const renderSaveStatus = () => {
     switch (saveStatus) {
       case 'saved':
-        return <span className="text-green-600 text-sm font-medium flex items-center">☁️ 保存済み</span>;
+        return <span className="text-green-600 text-sm font-medium flex items-center">保存済み</span>;
       case 'saving':
-        return <span className="text-blue-600 text-sm font-medium flex items-center">🔄 保存中...</span>;
+        return <span className="text-blue-600 text-sm font-medium flex items-center">保存中...</span>;
       case 'unsaved':
-        return <span className="text-gray-500 text-sm font-medium flex items-center">✍️ 未保存</span>;
+        return <span className="text-gray-500 text-sm font-medium flex items-center">未保存</span>;
       case 'error':
-        return <span className="text-red-600 text-sm font-medium flex items-center">⚠️ 保存失敗</span>;
+        return <span className="text-red-600 text-sm font-medium flex items-center">保存失敗</span>;
       default:
         return null;
     }
