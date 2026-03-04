@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from './hooks/useStore';
 import { LoginScreen } from './features/auth/LoginScreen';
 import { logout, saveAppData } from './api/drive';
@@ -13,30 +13,52 @@ function App() {
   const appData = useStore((state) => state.appData);
 
   const [activeTab, setActiveTab] = useState('sales');
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
+  // 保存ステータス管理
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
+  // 初回ロード判定用
+  const isInitialLoad = useRef(true);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
   const handleLogout = () => {
     logout();
     setIsAuthenticated(false);
   };
 
-  const handleSave = async () => {
+  // 自動保存（デバウンス処理）
+  useEffect(() => {
     if (!appData) return;
-    setIsSaving(true);
-    setSaveMessage('');
-    try {
-      await saveAppData(appData);
-      setSaveMessage('Google Driveに保存しました');
-      setTimeout(() => setSaveMessage(''), 3000);
-    } catch (error) {
-      console.error(error);
-      setSaveMessage('保存に失敗しました');
-      setTimeout(() => setSaveMessage(''), 3000);
-    } finally {
-      setIsSaving(false);
+
+    // 初回データ読み込み時は保存をスキップ
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
     }
-  };
+
+    setSaveStatus('unsaved');
+
+    // 以前のタイマーがあればクリア（入力が続く限り保存を延期）
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+    }
+
+    // 3秒間変更がなければ保存を実行
+    autoSaveTimer.current = setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        await saveAppData(appData);
+        setSaveStatus('saved');
+      } catch (error) {
+        console.error('自動保存に失敗しました:', error);
+        setSaveStatus('error');
+      }
+    }, 3000);
+
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, [appData]); // appData（グローバル状態）が変更されるたびに発火
 
   if (!isAuthenticated) {
     return <LoginScreen />;
@@ -50,6 +72,22 @@ function App() {
     { id: 'reports', label: '帳票 (有料)' },
     { id: 'settings', label: '設定' },
   ];
+
+  // ステータス表示コンポーネント
+  const renderSaveStatus = () => {
+    switch (saveStatus) {
+      case 'saved':
+        return <span className="text-green-600 text-sm font-medium flex items-center">☁️ 保存済み</span>;
+      case 'saving':
+        return <span className="text-blue-600 text-sm font-medium flex items-center">🔄 保存中...</span>;
+      case 'unsaved':
+        return <span className="text-gray-500 text-sm font-medium flex items-center">✍️ 未保存</span>;
+      case 'error':
+        return <span className="text-red-600 text-sm font-medium flex items-center">⚠️ 保存失敗</span>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -72,13 +110,9 @@ function App() {
               </select>
             </div>
             
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-            >
-              {isSaving ? '保存中...' : 'Driveへ保存'}
-            </button>
+            <div className="w-24 flex justify-end">
+              {renderSaveStatus()}
+            </div>
             
             <div className="text-sm text-gray-500 hidden md:block">
               {userEmail}
@@ -112,13 +146,6 @@ function App() {
           </nav>
         </div>
       </header>
-
-      {/* 保存メッセージトースト */}
-      {saveMessage && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg z-50 transition-opacity">
-          {saveMessage}
-        </div>
-      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'sales' && <SalesScreen />}

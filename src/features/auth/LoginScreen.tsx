@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { initGoogleApi, login, loadAppData } from '../../api/drive';
 import { useStore } from '../../hooks/useStore';
+import type { AppData } from '../../types';
 
 export const LoginScreen: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -17,7 +18,6 @@ export const LoginScreen: React.FC = () => {
       try {
         await initGoogleApi(async (email) => {
           if (!mounted) return;
-          // 認証成功時（ポップアップでのログイン完了後）に呼ばれるコールバック
           setIsLoadingData(true);
           setError(null);
           try {
@@ -25,8 +25,23 @@ export const LoginScreen: React.FC = () => {
             if (data) {
               setAppData(data);
             } else {
-              // データが存在しない場合の初期化ロジック等を後でここに追加できます
+              // データが存在しない場合の初期化ロジック
               console.log("既存のデータが見つかりませんでした。新規作成します。");
+              const initialData: AppData = {
+                version: "1.4",
+                userId: email,
+                years: {
+                  [new Date().getFullYear().toString()]: {
+                    apportionRate: 1, // 初期値は100%事業用
+                    openingBalances: { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 },
+                    sales: [],
+                    expenses: [],
+                    purchases: [],
+                    inventory: []
+                  }
+                }
+              };
+              setAppData(initialData);
             }
             setIsAuthenticated(true, email);
           } catch (err) {
