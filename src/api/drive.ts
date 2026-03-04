@@ -70,7 +70,6 @@ export const initGoogleApi = async (onAuthSuccess: (email: string) => void) => {
           await gapi.client.init({
             discoveryDocs: [DISCOVERY_DOC],
           });
-          isGapiLoaded = true;
           resolve();
         });
       });
@@ -83,7 +82,6 @@ export const initGoogleApi = async (onAuthSuccess: (email: string) => void) => {
           if (response.error !== undefined) {
             throw response;
           }
-          isGsiLoaded = true;
           // グローバルに保持した最新のコールバックを実行
           if (typeof window !== 'undefined' && (window as any)._onGoogleAuthSuccess) {
             (window as any)._onGoogleAuthSuccess('authenticated_user');
