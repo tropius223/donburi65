@@ -11,33 +11,45 @@ export const ReportsScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // 課金ステータスの確認
+  // 課金ステータスの確認関数
+  const checkStatus = async (force = false) => {
+    if (!userEmail) return;
+    if (force) setIsLoading(true);
+
+    try {
+      const response = await fetch('/.netlify/functions/check-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, forceRefresh: force }),
+      });
+      const data = await response.json();
+      setIsSubscribed(data.isSubscribed);
+    } catch (error) {
+      console.error('課金確認エラー:', error);
+      setIsSubscribed(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const checkStatus = async () => {
-      if (!userEmail) return;
-      try {
-        const response = await fetch('/.netlify/functions/check-subscription', {
-          method: 'POST',
-          body: JSON.stringify({ email: userEmail }),
-        });
-        const data = await response.json();
-        setIsSubscribed(data.isSubscribed);
-      } catch (error) {
-        console.error('課金確認エラー:', error);
-        setIsSubscribed(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    checkStatus();
+    // 決済成功パラメーターがある場合は強制リフレッシュ
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      checkStatus(true);
+      // パラメーターをURLから取り除く（リロード時の再処理防止）
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      checkStatus(false);
+    }
   }, [userEmail]);
 
-  // Stripe決済セッションの作成
   const handlePurchase = async () => {
     setIsProcessingPayment(true);
     try {
       const response = await fetch('/.netlify/functions/create-checkout', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail }),
       });
       const data = await response.json();
@@ -46,7 +58,6 @@ export const ReportsScreen = () => {
       }
     } catch (error) {
       console.error('決済エラー:', error);
-      alert('決済画面の起動に失敗しました。');
     } finally {
       setIsProcessingPayment(false);
     }
@@ -56,17 +67,15 @@ export const ReportsScreen = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-        <span className="ml-3 text-gray-600">課金状態を確認中...</span>
+        <span className="ml-3 text-gray-600">最新の購読状態を確認中...</span>
       </div>
     );
   }
 
-  // 集計データの計算
   const summary = currentYearData ? calculateSummary(currentYearData) : null;
 
   return (
     <div className="relative">
-      {/* 未課金時のオーバーレイ */}
       {!isSubscribed && (
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-gray-200 text-center max-w-md mx-4">
@@ -81,18 +90,23 @@ export const ReportsScreen = () => {
             >
               {isProcessingPayment ? '処理中...' : '年間 1,000円で購入する'}
             </button>
+            <button
+              onClick={() => checkStatus(true)}
+              className="mt-6 text-sm text-blue-600 hover:underline font-medium"
+            >
+              既に購入済みの場合はこちら（再確認）
+            </button>
             <p className="mt-4 text-xs text-gray-400 text-left">
-              ※Stripeによる安全な決済が行われます。購入後、この画面の制限が解除されます。
+              ※購入直後は反映に数十秒かかる場合があります。反映されない場合は上の「再確認」を押してください。
             </p>
           </div>
         </div>
       )}
 
-      {/* 帳票コンテンツ（未課金時はぼかし） */}
       <div className={`space-y-12 ${!isSubscribed ? 'filter blur-sm select-none pointer-events-none' : ''}`}>
         <div className="bg-white shadow sm:rounded-lg overflow-hidden">
-          <div className="px-6 py-8 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-2xl font-bold text-center text-gray-900">{currentYear}年度 損益計算書</h2>
+          <div className="px-6 py-8 border-b border-gray-200 bg-gray-50 text-center">
+            <h2 className="text-2xl font-bold text-gray-900">{currentYear}年度 損益計算書</h2>
           </div>
           <div className="p-6">
             <table className="min-w-full divide-y divide-gray-200">
@@ -107,7 +121,7 @@ export const ReportsScreen = () => {
                 </tr>
                 <tr className="border-t-2 border-gray-300 font-bold">
                   <td className="py-3 px-4 text-gray-900">売上総利益</td>
-                  <td className="py-3 px-4 text-right text-gray-900">{( (summary?.totalSales || 0) - (summary?.costOfSales || 0) ).toLocaleString()} 円</td>
+                  <td className="py-3 px-4 text-right text-gray-900">{((summary?.totalSales || 0) - (summary?.costOfSales || 0)).toLocaleString()} 円</td>
                 </tr>
                 <tr>
                   <td className="py-3 px-4 pl-8 text-gray-600">販売費及び一般管理費（経費）</td>
@@ -123,12 +137,11 @@ export const ReportsScreen = () => {
         </div>
 
         <div className="bg-white shadow sm:rounded-lg overflow-hidden">
-          <div className="px-6 py-8 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-2xl font-bold text-center text-gray-900">{currentYear}年度末 貸借対照表</h2>
+          <div className="px-6 py-8 border-b border-gray-200 bg-gray-50 text-center">
+            <h2 className="text-2xl font-bold text-gray-900">{currentYear}年度末 貸借対照表</h2>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* 資産の部 */}
               <div>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead>
@@ -141,11 +154,9 @@ export const ReportsScreen = () => {
                         <td className="py-2 px-4 text-right">{val.toLocaleString()} 円</td>
                       </tr>
                     ))}
-                    {/* ここに期末在庫を反映するロジックを後で追加 */}
                   </tbody>
                 </table>
               </div>
-              {/* 負債・純資産の部 */}
               <div>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead>
