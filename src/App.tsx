@@ -67,8 +67,8 @@ function App() {
     { id: 'expenses', label: '費用' },
     { id: 'purchases', label: '仕入' },
     { id: 'inventory', label: '棚卸' },
-    { id: 'reports', label: '帳票 (有料)' },
-    { id: 'settings', label: '設定' },
+    { id: 'settings', label: '開始仕訳' },
+    { id: 'reports', label: '出力 (有料)' },
   ];
 
   const renderSaveStatus = () => {

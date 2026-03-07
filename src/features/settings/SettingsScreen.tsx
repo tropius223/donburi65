@@ -28,13 +28,6 @@ export const SettingsScreen: React.FC = () => {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
 
-  // 按分比率のステート
-  const [apportionRate, setApportionRate] = useState<number>(Math.round((currentYearData.apportionRate || 1) * 100));
-
-  // 計算補助用のステート
-  const [areaRatio, setAreaRatio] = useState<number | ''>('');
-  const [timeHours, setTimeHours] = useState<number | ''>('');
-
   // 期首残高のステート
   const [openingBalances, setOpeningBalances] = useState<OpeningBalances>(
     currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 }
@@ -53,7 +46,6 @@ export const SettingsScreen: React.FC = () => {
   // データ同期
   useEffect(() => {
     if (currentYearData) {
-      setApportionRate(Math.round((currentYearData.apportionRate || 1) * 100));
       
       const balances = currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
       setOpeningBalances(balances);
@@ -70,7 +62,7 @@ export const SettingsScreen: React.FC = () => {
   }, [currentYearData]);
 
   // 設定の保存処理
-  const saveSettings = (rate: number, balances: OpeningBalances, receivables: PrevReceivable[] = prevReceivables) => {
+  const saveSettings = (balances: OpeningBalances, receivables: PrevReceivable[] = prevReceivables) => {
     if (!appData) return;
     const yearData = appData.years[currentYear];
     setAppData({
@@ -79,34 +71,12 @@ export const SettingsScreen: React.FC = () => {
         ...appData.years,
         [currentYear]: {
           ...yearData,
-          apportionRate: rate,
           openingBalances: balances,
           // 型定義拡張を避けるため any として保存
           previousReceivables: receivables,
         } as any,
       },
     });
-  };
-
-  const handleRateChange = (value: string) => {
-    let newRate = parseInt(value, 10);
-    if (isNaN(newRate)) newRate = 0;
-    if (newRate > 100) newRate = 100;
-    if (newRate < 0) newRate = 0;
-    
-    setApportionRate(newRate);
-    saveSettings(newRate / 100, openingBalances);
-  };
-
-  const applyAreaCalc = () => {
-    if (areaRatio === '') return;
-    handleRateChange(areaRatio.toString());
-  };
-
-  const applyTimeCalc = () => {
-    if (timeHours === '') return;
-    const rate = Math.round((Number(timeHours) / 24) * 100);
-    handleRateChange(rate.toString());
   };
 
   const handleBalanceChange = (key: string, value: string) => {
@@ -117,7 +87,7 @@ export const SettingsScreen: React.FC = () => {
 
     const newBalances = { ...openingBalances, [key]: numValue };
     setOpeningBalances(newBalances);
-    saveSettings(apportionRate / 100, newBalances, prevReceivables);
+    saveSettings(newBalances, prevReceivables);
   };
 
   // 前年売掛金の追加処理
@@ -125,7 +95,7 @@ export const SettingsScreen: React.FC = () => {
     if (!newRecDate || newRecAmount === '') return;
     const newItems = [...prevReceivables, { id: crypto.randomUUID(), date: newRecDate, amount: Number(newRecAmount) }];
     setPrevReceivables(newItems);
-    saveSettings(apportionRate / 100, openingBalances, newItems);
+    saveSettings(openingBalances, newItems);
     setNewRecDate('');
     setNewRecAmount('');
   };
@@ -133,7 +103,7 @@ export const SettingsScreen: React.FC = () => {
   const handleDeletePrevReceivable = (id: string) => {
     const newItems = prevReceivables.filter(r => r.id !== id);
     setPrevReceivables(newItems);
-    saveSettings(apportionRate / 100, openingBalances, newItems);
+    saveSettings(openingBalances, newItems);
   };
 
   const handleRecKeyDown = (e: React.KeyboardEvent) => {
@@ -180,85 +150,6 @@ export const SettingsScreen: React.FC = () => {
   return (
     <div className="space-y-8">
       
-      {/* 事業用按分比率の設定 */}
-      <div className="bg-white shadow sm:rounded-lg overflow-hidden">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">事業用按分比率の設定</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            費用画面で「按分: 有」とした項目について、ここで設定した割合だけが事業の経費として計算されます。
-          </p>
-        </div>
-        <div className="px-4 py-5 sm:p-6">
-          <div className="flex items-center space-x-4 mb-8">
-            <label className="text-sm font-medium text-gray-700">事業用割合:</label>
-            <div className="flex items-center">
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={apportionRate}
-                onChange={(e) => handleRateChange(e.target.value)}
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-24 sm:text-sm border-gray-300 rounded-md py-2 px-3 border text-right font-medium"
-              />
-              <span className="ml-2 text-gray-700">%</span>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 pt-6">
-            <h4 className="text-sm font-medium text-gray-900 mb-4">計算補助ツール（根拠メモ）</h4>
-            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-              <div className="border border-gray-200 rounded p-4 bg-gray-50">
-                <span className="block text-sm font-medium text-gray-700 mb-2">面積按分</span>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <span>部屋の間取りの</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={areaRatio}
-                    onChange={(e) => setAreaRatio(parseInt(e.target.value, 10) || '')}
-                    className="w-16 border-gray-300 rounded-md py-1 px-2 border text-right"
-                    placeholder="0"
-                  />
-                  <span>% を副業に使っている。</span>
-                </div>
-                <button
-                  onClick={applyAreaCalc}
-                  disabled={areaRatio === ''}
-                  className="mt-3 w-full inline-flex justify-center py-1.5 px-4 border border-transparent shadow-sm text-sm font-medium rounded text-white bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400"
-                >
-                  この割合を適用
-                </button>
-              </div>
-
-              <div className="border border-gray-200 rounded p-4 bg-gray-50">
-                <span className="block text-sm font-medium text-gray-700 mb-2">時間按分</span>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <span>24時間のうち</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="24"
-                    value={timeHours}
-                    onChange={(e) => setTimeHours(parseInt(e.target.value, 10) || '')}
-                    className="w-16 border-gray-300 rounded-md py-1 px-2 border text-right"
-                    placeholder="0"
-                  />
-                  <span>時間、副業している。</span>
-                </div>
-                <button
-                  onClick={applyTimeCalc}
-                  disabled={timeHours === ''}
-                  className="mt-3 w-full inline-flex justify-center py-1.5 px-4 border border-transparent shadow-sm text-sm font-medium rounded text-white bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400"
-                >
-                  計算して適用
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 開始仕訳の設定 */}
       <div className="bg-white shadow sm:rounded-lg overflow-hidden">
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">

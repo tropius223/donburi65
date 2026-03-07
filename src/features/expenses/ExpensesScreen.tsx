@@ -112,7 +112,7 @@ const ExpenseCell: React.FC<{
   };
 
   const handleBlur = () => {
-    let num = parseInt(display.replace(/[^0-9]/g, ''), 10) || 0;
+    const num = parseInt(display.replace(/[^0-9]/g, ''), 10) || 0;
     if (num === 0) {
       setDisplay('');
     } else {
@@ -275,11 +275,31 @@ export const ExpensesScreen: React.FC = () => {
     });
   };
 
+  const handleRateChange = (newRatePercent: number) => {
+    if (!appData) return;
+    const yearData = appData.years[currentYear];
+    
+    // 入力値の制限
+    let validRate = newRatePercent;
+    if (isNaN(validRate) || validRate < 0) validRate = 0;
+    if (validRate > 100) validRate = 100;
+
+    setAppData({
+      ...appData,
+      years: {
+        ...appData.years,
+        [currentYear]: {
+          ...yearData,
+          apportionRate: validRate / 100,
+        },
+      },
+    });
+  };
+
   const getAmount = (month: number, label: string) => {
     const expense = expenses.find((e) => e.month === month && e.category === label);
     return expense ? expense.amount : '';
   };
-
 
   const getColumnTotal = (label: string) => {
     return expenses.filter((e) => e.category === label)
@@ -295,6 +315,26 @@ export const ExpensesScreen: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="bg-white shadow sm:rounded-lg p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-lg leading-6 font-medium text-gray-900">事業用按分比率</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            「按分: 有」に設定した列に入力された金額に対し、ここで設定した事業用の割合が自動的に掛け合わされます。
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-0 flex items-center space-x-2">
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={Math.round(rate * 100)}
+            onChange={(e) => handleRateChange(Number(e.target.value))}
+            className="block w-24 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-lg border p-2 text-right font-bold text-blue-700"
+          />
+          <span className="text-gray-700 font-medium">%</span>
+        </div>
+      </div>
+
       <div className="bg-white shadow sm:rounded-lg overflow-hidden flex flex-col">
         <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 bg-gray-50">
           <div>
