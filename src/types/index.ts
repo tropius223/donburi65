@@ -19,7 +19,7 @@ export interface Sale {
 export interface Expense {
   id: string;
   month: number; // 発生月 (1-12)
-  category: string; // 科目
+  category: string; // 科目 (列名と紐づく)
   amount: number; // 金額
   isApportioned: boolean; // 按分有無
 }
@@ -39,6 +39,12 @@ export interface InventoryItem {
   totalAmount: number; // 合計金額
 }
 
+export interface ExpenseColumn {
+  label: string;
+  category: string;
+  isApportioned: boolean;
+}
+
 export interface YearData {
   apportionRate: number; // 事業用按分比率 (例: 0.5)
   openingBalances: OpeningBalances;
@@ -46,6 +52,7 @@ export interface YearData {
   expenses: Expense[];
   purchases: Purchase[];
   inventory: InventoryItem[];
+  expenseColumns?: ExpenseColumn[]; // 列のカスタマイズ設定
 }
 
 export interface AppData {

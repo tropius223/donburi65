@@ -3,6 +3,10 @@ import { useStore } from './hooks/useStore';
 import { LoginScreen } from './features/auth/LoginScreen';
 import { logout, saveAppData } from './api/drive';
 import { SalesScreen } from './features/sales/SalesScreen';
+import { ExpensesScreen } from './features/expenses/ExpensesScreen';
+import { PurchasesScreen } from './features/purchases/PurchasesScreen';
+import { InventoryScreen } from './features/inventory/InventoryScreen';
+import { SettingsScreen } from './features/settings/SettingsScreen';
 
 function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
@@ -13,9 +17,7 @@ function App() {
   const appData = useStore((state) => state.appData);
 
   const [activeTab, setActiveTab] = useState('sales');
-  // 保存ステータス管理
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
-  // 初回ロード判定用
   const isInitialLoad = useRef(true);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -24,11 +26,9 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  // 自動保存（デバウンス処理）
   useEffect(() => {
     if (!appData) return;
 
-    // 初回データ読み込み時は保存をスキップ
     if (isInitialLoad.current) {
       isInitialLoad.current = false;
       return;
@@ -36,12 +36,10 @@ function App() {
 
     setSaveStatus('unsaved');
 
-    // 以前のタイマーがあればクリア（入力が続く限り保存を延期）
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
     }
 
-    // 3秒間変更がなければ保存を実行
     autoSaveTimer.current = setTimeout(async () => {
       setSaveStatus('saving');
       try {
@@ -58,7 +56,7 @@ function App() {
         clearTimeout(autoSaveTimer.current);
       }
     };
-  }, [appData]); // appData（グローバル状態）が変更されるたびに発火
+  }, [appData]);
 
   if (!isAuthenticated) {
     return <LoginScreen />;
@@ -73,7 +71,6 @@ function App() {
     { id: 'settings', label: '設定' },
   ];
 
-  // ステータス表示コンポーネント
   const renderSaveStatus = () => {
     switch (saveStatus) {
       case 'saved':
@@ -126,7 +123,6 @@ function App() {
           </div>
         </div>
         
-        {/* ナビゲーションタブ */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
           <nav className="flex space-x-4 sm:space-x-8" aria-label="Tabs">
             {tabs.map((tab) => (
@@ -149,11 +145,11 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'sales' && <SalesScreen />}
-        {activeTab === 'expenses' && <div className="p-6 bg-white shadow rounded-lg text-gray-600 text-center">費用画面は開発中です。</div>}
-        {activeTab === 'purchases' && <div className="p-6 bg-white shadow rounded-lg text-gray-600 text-center">仕入画面は開発中です。</div>}
-        {activeTab === 'inventory' && <div className="p-6 bg-white shadow rounded-lg text-gray-600 text-center">棚卸画面は開発中です。</div>}
+        {activeTab === 'expenses' && <ExpensesScreen />}
+        {activeTab === 'purchases' && <PurchasesScreen />}
+        {activeTab === 'inventory' && <InventoryScreen />}
         {activeTab === 'reports' && <div className="p-6 bg-white shadow rounded-lg text-gray-600 text-center">帳票画面は開発中です。</div>}
-        {activeTab === 'settings' && <div className="p-6 bg-white shadow rounded-lg text-gray-600 text-center">設定画面は開発中です。</div>}
+        {activeTab === 'settings' && <SettingsScreen />}
       </main>
     </div>
   );
