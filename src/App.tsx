@@ -7,6 +7,7 @@ import { ExpensesScreen } from './features/expenses/ExpensesScreen';
 import { PurchasesScreen } from './features/purchases/PurchasesScreen';
 import { InventoryScreen } from './features/inventory/InventoryScreen';
 import { SettingsScreen } from './features/settings/SettingsScreen';
+import { ReportsScreen } from './features/reports/ReportsScreen';
 
 function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
@@ -17,7 +18,9 @@ function App() {
   const appData = useStore((state) => state.appData);
 
   const [activeTab, setActiveTab] = useState('sales');
+  // 保存ステータス管理
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
+  // 初回ロード判定用
   const isInitialLoad = useRef(true);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -26,9 +29,11 @@ function App() {
     setIsAuthenticated(false);
   };
 
+  // 自動保存（デバウンス処理）
   useEffect(() => {
     if (!appData) return;
 
+    // 初回データ読み込み時は保存をスキップ
     if (isInitialLoad.current) {
       isInitialLoad.current = false;
       return;
@@ -36,10 +41,12 @@ function App() {
 
     setSaveStatus('unsaved');
 
+    // 以前のタイマーがあればクリア（入力が続く限り保存を延期）
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
     }
 
+    // 3秒間変更がなければ保存を実行
     autoSaveTimer.current = setTimeout(async () => {
       setSaveStatus('saving');
       try {
@@ -67,8 +74,8 @@ function App() {
     { id: 'expenses', label: '費用' },
     { id: 'purchases', label: '仕入' },
     { id: 'inventory', label: '棚卸' },
-    { id: 'settings', label: '開始仕訳' },
-    { id: 'reports', label: '出力 (有料)' },
+    { id: 'reports', label: '帳票 (有料)' },
+    { id: 'settings', label: '設定' },
   ];
 
   const renderSaveStatus = () => {
@@ -148,7 +155,7 @@ function App() {
         {activeTab === 'expenses' && <ExpensesScreen />}
         {activeTab === 'purchases' && <PurchasesScreen />}
         {activeTab === 'inventory' && <InventoryScreen />}
-        {activeTab === 'reports' && <div className="p-6 bg-white shadow rounded-lg text-gray-600 text-center">帳票画面は開発中です。</div>}
+        {activeTab === 'reports' && <ReportsScreen />}
         {activeTab === 'settings' && <SettingsScreen />}
       </main>
     </div>
