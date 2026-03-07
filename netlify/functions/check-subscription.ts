@@ -2,21 +2,33 @@ import { Handler } from '@netlify/functions';
 import Stripe from 'stripe';
 import { Redis } from '@upstash/redis';
 
-// Stripeの初期化
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2023-10-16' as any,
-});
-
-// Upstash Redisの初期化
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL as string,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN as string,
-});
-
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
+
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  // 初期化前のバリデーション
+  if (!stripeKey || !redisUrl || !redisToken) {
+    console.error('Missing Environment Variables for Subscription Check');
+    return { 
+      statusCode: 500, 
+      body: JSON.stringify({ error: 'Server configuration error.' }) 
+    };
+  }
+
+  // ハンドラー内で各クライアントを初期化
+  const stripe = new Stripe(stripeKey, {
+    apiVersion: '2023-10-16' as any,
+  });
+
+  const redis = new Redis({
+    url: redisUrl,
+    token: redisToken,
+  });
 
   try {
     const { email } = JSON.parse(event.body || '{}');
@@ -24,22 +36,17 @@ export const handler: Handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Email is required' }) };
     }
 
-    // キャッシュキーの作成
     const cacheKey = `sub_status_${email}`;
-
-    // 1. Upstash Redisからキャッシュを確認
     const cachedStatus = await redis.get<string>(cacheKey);
+    
     if (cachedStatus !== null) {
-      console.log('Cache hit for:', email);
       return {
         statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isSubscribed: cachedStatus === 'active', fromCache: true }),
       };
     }
 
-    console.log('Cache miss, querying Stripe for:', email);
-
-    // 2. キャッシュがない場合のみStripeへ問い合わせ
     const customers = await stripe.customers.list({
       email: email,
       limit: 1,
@@ -47,23 +54,21 @@ export const handler: Handler = async (event) => {
     });
 
     let isSubscribed = false;
-
     if (customers.data.length > 0) {
       const customer = customers.data[0];
       const subscriptions = customer.subscriptions?.data || [];
-      // アクティブなサブスクリプションがあるか確認
       isSubscribed = subscriptions.some(sub => sub.status === 'active' || sub.status === 'trialing');
     }
 
-    // 3. 取得した結果をRedisにキャッシュとして保存（TTL: 6時間 = 21600秒）
     await redis.set(cacheKey, isSubscribed ? 'active' : 'inactive', { ex: 21600 });
 
     return {
       statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isSubscribed, fromCache: false }),
     };
   } catch (error: any) {
-    console.error('Subscription check error:', error);
+    console.error('Subscription Check Error:', error.message);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message }),
