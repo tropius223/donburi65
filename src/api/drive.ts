@@ -6,7 +6,8 @@ declare var gapi: any;
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
-const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+// メールアドレス取得のためのスコープを追加
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email';
 const FILE_NAME = 'donburi_data.json';
 
 let tokenClient: any;
@@ -15,18 +16,16 @@ let tokenClient: any;
 let initPromise: Promise<void> | null = null;
 
 /**
- * 外部のスクリプトを動的に読み込むユーティリティ関数（堅牢化版）
+ * 外部のスクリプトを動的に読み込むユーティリティ関数
  */
 const loadScript = (src: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const existingScript = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement;
     
     if (existingScript) {
-      // 既に読み込みが完了している場合
       if (existingScript.getAttribute('data-loaded') === 'true') {
         resolve();
       } else {
-        // 読み込み中の場合はイベントリスナーを追加して完了を待つ
         existingScript.addEventListener('load', () => resolve());
         existingScript.addEventListener('error', () => reject(new Error(`Script load error: ${src}`)));
       }
@@ -55,16 +54,13 @@ export const initGoogleApi = async (onAuthSuccess: (email: string) => void) => {
     return;
   }
 
-  // ReactのStrictMode等で複数回呼ばれても、API初期化処理自体は1回だけ実行する
   if (!initPromise) {
     initPromise = (async () => {
-      // 1. GAPIとGSIのスクリプトを読み込み
       await Promise.all([
         loadScript('https://apis.google.com/js/api.js'),
         loadScript('https://accounts.google.com/gsi/client')
       ]);
 
-      // 2. GAPIクライアントの初期化
       await new Promise<void>((resolve) => {
         gapi.load('client', async () => {
           await gapi.client.init({
@@ -74,7 +70,6 @@ export const initGoogleApi = async (onAuthSuccess: (email: string) => void) => {
         });
       });
 
-      // 3. GSI（トークンクライアント）の初期化
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
@@ -82,9 +77,23 @@ export const initGoogleApi = async (onAuthSuccess: (email: string) => void) => {
           if (response.error !== undefined) {
             throw response;
           }
-          // グローバルに保持した最新のコールバックを実行
-          if (typeof window !== 'undefined' && (window as any)._onGoogleAuthSuccess) {
-            (window as any)._onGoogleAuthSuccess('authenticated_user');
+
+          // アクセストークンを使用してユーザー情報を取得
+          try {
+            const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${response.access_token}` }
+            });
+            const userInfo = await userInfoRes.json();
+            const email = userInfo.email || 'unknown_user';
+
+            if (typeof window !== 'undefined' && (window as any)._onGoogleAuthSuccess) {
+              (window as any)._onGoogleAuthSuccess(email);
+            }
+          } catch (err) {
+            console.error('User info fetch error', err);
+            if (typeof window !== 'undefined' && (window as any)._onGoogleAuthSuccess) {
+              (window as any)._onGoogleAuthSuccess('authenticated_user');
+            }
           }
         },
       });
@@ -92,11 +101,10 @@ export const initGoogleApi = async (onAuthSuccess: (email: string) => void) => {
   }
 
   try {
-    // コンポーネントが再レンダリングされても最新の関数を呼べるように保持
     (window as any)._onGoogleAuthSuccess = onAuthSuccess;
     await initPromise;
   } catch (error) {
-    initPromise = null; // 失敗した場合は再試行できるようにリセット
+    initPromise = null;
     console.error('Google API の初期化に失敗しました:', error);
     throw error;
   }
@@ -125,9 +133,6 @@ export const logout = () => {
   }
 };
 
-/**
- * DriveのappDataFolderからファイルIDを検索する
- */
 const findFileId = async (): Promise<string | null> => {
   try {
     const response = await gapi.client.drive.files.list({
@@ -147,21 +152,15 @@ const findFileId = async (): Promise<string | null> => {
   }
 };
 
-/**
- * アプリのデータを取得する
- */
 export const loadAppData = async (): Promise<AppData | null> => {
   const fileId = await findFileId();
-  if (!fileId) {
-    return null; // データが存在しない場合
-  }
+  if (!fileId) return null;
 
   try {
     const response = await gapi.client.drive.files.get({
       fileId: fileId,
       alt: 'media',
     });
-    // 取得した文字列をJSONとしてパースして返す
     return typeof response.result === 'string' ? JSON.parse(response.result) : response.result;
   } catch (err) {
     console.error('Data load error', err);
@@ -169,9 +168,6 @@ export const loadAppData = async (): Promise<AppData | null> => {
   }
 };
 
-/**
- * アプリのデータを保存する (Multipart upload)
- */
 export const saveAppData = async (data: AppData): Promise<void> => {
   const fileId = await findFileId();
   const token = gapi.client.getToken().access_token;
@@ -194,7 +190,6 @@ export const saveAppData = async (data: AppData): Promise<void> => {
     JSON.stringify(data) +
     close_delim;
 
-  // ファイルが既に存在すればPATCH（更新）、無ければPOST（新規作成）
   const url = fileId 
     ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
     : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
