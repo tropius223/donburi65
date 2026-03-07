@@ -11,16 +11,13 @@ export const handler: Handler = async (event) => {
   const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
   const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // 初期化前のバリデーション
   if (!stripeKey || !redisUrl || !redisToken) {
-    console.error('Missing Environment Variables for Subscription Check');
     return { 
       statusCode: 500, 
       body: JSON.stringify({ error: 'Server configuration error.' }) 
     };
   }
 
-  // ハンドラー内で各クライアントを初期化
   const stripe = new Stripe(stripeKey, {
     apiVersion: '2023-10-16' as any,
   });
@@ -31,35 +28,43 @@ export const handler: Handler = async (event) => {
   });
 
   try {
-    const { email } = JSON.parse(event.body || '{}');
-    if (!email) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Email is required' }) };
+    const { email, forceRefresh } = JSON.parse(event.body || '{}');
+    if (!email || !email.includes('@')) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Valid email is required' }) };
     }
 
     const cacheKey = `sub_status_${email}`;
-    const cachedStatus = await redis.get<string>(cacheKey);
-    
-    if (cachedStatus !== null) {
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isSubscribed: cachedStatus === 'active', fromCache: true }),
-      };
+
+    // 強制更新でない場合はキャッシュを確認
+    if (!forceRefresh) {
+      const cachedStatus = await redis.get<string>(cacheKey);
+      if (cachedStatus !== null) {
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isSubscribed: cachedStatus === 'active', fromCache: true }),
+        };
+      }
     }
 
+    // Stripeから該当メールアドレスの全顧客を取得
     const customers = await stripe.customers.list({
       email: email,
-      limit: 1,
       expand: ['data.subscriptions'],
     });
 
     let isSubscribed = false;
-    if (customers.data.length > 0) {
-      const customer = customers.data[0];
+
+    // 取得したすべての顧客オブジェクトをチェック
+    for (const customer of customers.data) {
       const subscriptions = customer.subscriptions?.data || [];
-      isSubscribed = subscriptions.some(sub => sub.status === 'active' || sub.status === 'trialing');
+      if (subscriptions.some(sub => sub.status === 'active' || sub.status === 'trialing')) {
+        isSubscribed = true;
+        break;
+      }
     }
 
+    // 最新状態をキャッシュに保存（TTL: 6時間）
     await redis.set(cacheKey, isSubscribed ? 'active' : 'inactive', { ex: 21600 });
 
     return {
@@ -68,7 +73,7 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({ isSubscribed, fromCache: false }),
     };
   } catch (error: any) {
-    console.error('Subscription Check Error:', error.message);
+    console.error('Subscription check error:', error.message);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message }),
