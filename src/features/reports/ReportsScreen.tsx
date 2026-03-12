@@ -77,7 +77,7 @@ export const ReportsScreen = () => {
   return (
     <div className="relative">
       {!isSubscribed && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
+        <div className="absolute inset-0 z-0 flex items-center justify-center">
           <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-gray-200 text-center max-w-md mx-4">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">帳票出力機能は有料です</h3>
             <p className="text-gray-600 mb-8">
