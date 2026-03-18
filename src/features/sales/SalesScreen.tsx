@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { Sale } from '../../types';
 
@@ -6,15 +6,30 @@ import type { Sale } from '../../types';
 const SaleRow = ({ sale, currentYear, onUpdate, onDelete }: { sale: Sale; currentYear: string; onUpdate: (s: Sale) => void; onDelete: (id: string) => void }) => {
   const [editData, setEditData] = useState(sale);
   const [depositUndecided, setDepositUndecided] = useState(sale.depositDate === '');
+  const [displayAmount, setDisplayAmount] = useState(sale.amount === 0 ? '' : sale.amount.toLocaleString());
 
   // 親の状態が変更されたらローカル状態も同期する
   useEffect(() => {
     setEditData(sale);
     setDepositUndecided(sale.depositDate === '');
+    setDisplayAmount(sale.amount === 0 ? '' : sale.amount.toLocaleString());
   }, [sale]);
 
   const handleChange = (field: keyof Sale, value: string | number) => {
     setEditData({ ...editData, [field]: value });
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 数字以外の文字を削除
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    if (!raw) {
+      setDisplayAmount('');
+      handleChange('amount', 0);
+    } else {
+      const num = parseInt(raw, 10);
+      setDisplayAmount(num.toLocaleString());
+      handleChange('amount', num);
+    }
   };
 
   const handleBlur = () => {
@@ -26,6 +41,7 @@ const SaleRow = ({ sale, currentYear, onUpdate, onDelete }: { sale: Sale; curren
       } else {
         // 不正な値の場合は元に戻す
         setEditData(sale);
+        setDisplayAmount(sale.amount === 0 ? '' : sale.amount.toLocaleString());
       }
     }
   };
@@ -59,12 +75,19 @@ const SaleRow = ({ sale, currentYear, onUpdate, onDelete }: { sale: Sale; curren
           </button>
         </div>
       </td>
-      {/* 重複していたdepositDateの入力欄を削除しました */}
       <td className="p-0 border-l border-gray-200">
-        <input type="text" value={editData.client} onChange={(e) => handleChange('client', e.target.value)} onBlur={handleBlur} placeholder="売上先を入力" className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+        <input type="text" list="client-list" value={editData.client} onChange={(e) => handleChange('client', e.target.value)} onBlur={handleBlur} placeholder="売上先を入力" className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
       </td>
       <td className="p-0 border-l border-gray-200">
-        <input type="number" value={editData.amount === 0 ? '' : editData.amount} onChange={(e) => handleChange('amount', parseInt(e.target.value, 10) || 0)} onBlur={handleBlur} placeholder="0" className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-right font-medium" />
+        <input 
+          type="text" 
+          inputMode="numeric"
+          value={displayAmount} 
+          onChange={handleAmountChange} 
+          onBlur={handleBlur} 
+          placeholder="0" 
+          className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-right font-medium" 
+        />
       </td>
       <td className="p-0 border-l border-gray-200 text-center align-middle">
         <button onClick={() => onDelete(sale.id)} className="text-gray-400 hover:text-red-600 transition-colors p-2" title="削除">
@@ -89,6 +112,14 @@ export const SalesScreen: React.FC = () => {
   const [newDepositUndecided, setNewDepositUndecided] = useState(false);
   const [newClient, setNewClient] = useState('');
   const [newAmount, setNewAmount] = useState<number | ''>('');
+  const [newAmountDisplay, setNewAmountDisplay] = useState('');
+
+  // 取引先の重複なしリストを生成
+  const clientOptions = useMemo(() => {
+    if (!currentYearData) return [];
+    const clients = currentYearData.sales.map(s => s.client).filter(c => c.trim() !== '');
+    return Array.from(new Set(clients));
+  }, [currentYearData]);
 
   if (!currentYearData && !appData) {
     return <div>データを読み込み中です...</div>;
@@ -131,6 +162,18 @@ export const SalesScreen: React.FC = () => {
     updateStoreSales(updatedSales);
   };
 
+  const handleNewAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    if (!raw) {
+      setNewAmountDisplay('');
+      setNewAmount('');
+    } else {
+      const num = parseInt(raw, 10);
+      setNewAmountDisplay(num.toLocaleString());
+      setNewAmount(num);
+    }
+  };
+
   const handleAddSale = () => {
     if (!newSalesDate || !newSalesDate.startsWith(currentYear) || !newClient || newAmount === '') return;
 
@@ -149,6 +192,7 @@ export const SalesScreen: React.FC = () => {
     setNewDepositDate('');
     setNewClient('');
     setNewAmount('');
+    setNewAmountDisplay('');
   };
 
   // エンターキーで追加を実行
@@ -160,6 +204,13 @@ export const SalesScreen: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* datalistを配置 */}
+      <datalist id="client-list">
+        {clientOptions.map((client, idx) => (
+          <option key={idx} value={client} />
+        ))}
+      </datalist>
+
       <div className="bg-white shadow sm:rounded-lg overflow-hidden flex flex-col">
         <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 bg-gray-50">
           <div>
@@ -214,10 +265,18 @@ export const SalesScreen: React.FC = () => {
                   </div>
                 </td>
                 <td className="p-0 border-l border-gray-200">
-                  <input type="text" value={newClient} onChange={(e) => setNewClient(e.target.value)} onKeyDown={handleKeyDown} placeholder="新規売上先を追加..." className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-blue-900 placeholder-blue-400 font-medium" />
+                  <input type="text" list="client-list" value={newClient} onChange={(e) => setNewClient(e.target.value)} onKeyDown={handleKeyDown} placeholder="新規売上先を追加..." className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-blue-900 placeholder-blue-400 font-medium" />
                 </td>
                 <td className="p-0 border-l border-gray-200">
-                  <input type="number" value={newAmount} onChange={(e) => setNewAmount(parseInt(e.target.value, 10) || '')} onKeyDown={handleKeyDown} placeholder="0" className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-right font-bold text-blue-900 placeholder-blue-300" />
+                  <input 
+                    type="text" 
+                    inputMode="numeric"
+                    value={newAmountDisplay} 
+                    onChange={handleNewAmountChange} 
+                    onKeyDown={handleKeyDown} 
+                    placeholder="0" 
+                    className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-right font-bold text-blue-900 placeholder-blue-300" 
+                  />
                 </td>
                 <td className="p-0 border-l border-gray-200 text-center align-middle">
                   <button onClick={handleAddSale} disabled={!newSalesDate || !newSalesDate.startsWith(currentYear) || !newClient || newAmount === ''} className="text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed rounded px-3 py-1.5 text-sm font-medium transition-colors m-1 shadow-sm">

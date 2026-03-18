@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>利用規約 - どんぶり帳簿</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 leading-relaxed">
+
+    <!-- ナビゲーション（簡易版） -->
+    <nav class="w-full bg-white border-b border-gray-200">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center">
+                <a href="landing_page.html" class="text-xl font-black text-orange-600 tracking-tight">どんぶり帳簿</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 利用規約コンテンツ -->
+    <main class="py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+        <div class="bg-white p-8 sm:p-12 rounded-3xl border border-gray-200 shadow-sm">
+            <h1 class="text-3xl font-bold mb-8 text-center border-b border-gray-200 pb-6">利用規約</h1>
+            
+            <div class="space-y-8 text-gray-700">
+                <p>
+                    この利用規約（以下「本規約」といいます。）は、どんぶり帳簿（以下「本サービス」といいます。）の提供条件及び運営者と利用者の皆様との間の権利義務関係を定めるものです。本サービスの利用に際しては、本規約の全文をお読みいただいたうえで、本規約に同意いただく必要があります。
+                </p>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第1条（適用）</h2>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>本規約は、本サービスの提供条件及び本サービスの利用に関する運営者と利用者との間の権利義務関係を定めることを目的とし、利用者と運営者との間の本サービスの利用に関わる一切の関係に適用されます。</li>
+                        <li>運営者が本サービス上で掲載する本サービス利用に関するルール等は、本規約の一部を構成するものとします。</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第2条（本サービスの特徴と特殊性についての同意）</h2>
+                    <p class="mb-2">利用者は、本サービスが以下の特殊な設計思想に基づいていることを十分に理解し、自己の責任と判断において利用することに同意するものとします。</p>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>本サービスは「現預金の記帳を行わず、資金の出入りをすべて事業主勘定に集約して処理を簡略化する」という特殊な記帳方式を採用しています。</li>
+                        <li>本サービスは、在庫管理において日々の入出庫を記録せず、期末の実地棚卸のみによる「点」での管理方式を採用しています。</li>
+                        <li>本サービスは、利用者が確定申告（青色申告を含みますがこれに限られません）を行うためのデータ作成を補助するツールであり、利用者の申告内容の正確性、適法性、および青色申告の承認要件を満たすことを運営者が保証するものではありません。</li>
+                        <li>税務署等の行政機関からの指導、調査、指摘、あるいは青色申告の承認取消し、追徴課税の発生等、本サービスの利用に起因して利用者に生じた不利益および損害について、運営者は一切の責任を負いません。</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第3条（利用料金および有料プラン）</h2>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>本サービスの基本機能（データの入力および保存等）は無料で利用することができます。</li>
+                        <li>帳票類（仕訳帳、総勘定元帳、損益計算書、貸借対照表等）の金額表示および出力機能を利用する場合、利用者は運営者が別途定める有料プラン（年間サブスクリプション）に申し込むものとします。</li>
+                        <li>利用料金の支払いは、Stripe等の運営者が指定する外部決済サービスを利用して行われます。利用者は、当該決済サービスの利用規約等に従うものとします。</li>
+                        <li>有料プランは原則として自動更新となります。解約を希望する場合は、本サービス内のアカウント管理画面より所定の手続きを行うことで次回の更新を停止することができます。</li>
+                        <li>支払い済みの利用料金について、運営者は理由の如何を問わず返金を行わないものとします。</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第4条（利用環境およびデータの取り扱い）</h2>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>本サービスは、利用者のウェブブラウザ上で動作し、Google LLCが提供するGoogle Drive APIを利用してデータを保存するWebアプリケーションです。利用者は、自己の責任と負担において必要なGoogleアカウントおよび通信環境を用意するものとします。</li>
+                        <li>本サービスに入力されたデータは、利用者のGoogle Driveの専用領域（appDataFolder）内に直接保存されます。入力されたデータが運営者のサーバーに送信・保存されることはなく、運営者は利用者のデータを閲覧、取得、保持、バックアップ、または復元する権限を一切持ちません。</li>
+                        <li>Googleアカウントの紛失、Google Driveの容量不足、利用者の誤操作、または外部サービスの不具合等、いかなる理由によるデータの消失や破損についても、運営者は一切の責任を負いません。</li>
+                        <li>利用者は、本サービスを利用して作成した決算書等の数値について、自らの責任で確認したうえで税務申告等に利用するものとします。</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第5条（禁止事項）</h2>
+                    <p class="mb-2">利用者は、本サービスの利用にあたり、以下の行為をしてはなりません。</p>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>法令に違反する行為または犯罪行為に関連する行為</li>
+                        <li>運営者、本サービスの他の利用者またはその他の第三者に対する詐欺または脅迫行為</li>
+                        <li>公序良俗に反する行為</li>
+                        <li>運営者、本サービスの他の利用者またはその他の第三者の知的財産権、肖像権、プライバシーの権利、名誉、その他の権利または利益を侵害する行為</li>
+                        <li>本サービスのネットワークまたはシステム等に過度な負荷をかける行為</li>
+                        <li>本サービスの運営を妨害するおそれのある行為</li>
+                        <li>本サービス（Webアプリのプログラム、ソースコード、アルゴリズム等）をリバースエンジニアリング、逆コンパイル、または逆アセンブルする行為</li>
+                        <li>本サービスを第三者に再配布、販売、貸与する行為（運営者が別途認めた場合を除きます）</li>
+                        <li>その他、運営者が不適切と判断する行為</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第6条（本サービスの提供の停止等）</h2>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>運営者は、以下のいずれかに該当する場合には、利用者に事前に通知することなく、本サービスの全部または一部の提供を停止または中断することができるものとします。
+                            <ul class="list-disc pl-6 mt-2 space-y-1">
+                                <li>本サービスに係るコンピューター・システムの点検または保守作業を緊急に行う場合</li>
+                                <li>コンピューター、通信回線等の障害、誤操作、過度なアクセスの集中、不正アクセス、ハッキング等により本サービスの運営ができなくなった場合</li>
+                                <li>地震、落雷、火災、風水害、停電、天災地変などの不可抗力により本サービスの運営ができなくなった場合</li>
+                                <li>Google LLC等の外部連携サービスの仕様変更、停止、終了等により本サービスの提供が困難となった場合</li>
+                                <li>その他、運営者が停止または中断を必要と判断した場合</li>
+                            </ul>
+                        </li>
+                        <li>運営者は、本条に基づき運営者が行った措置に基づき利用者に生じた損害について一切の責任を負いません。</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第7条（権利帰属）</h2>
+                    <p>
+                        本サービス（Webアプリのプログラム、デザイン、UI、LP等のコンテンツを含みます）に関する知的財産権等は全て運営者または運営者にライセンスを許諾している者に帰属しており、本規約に基づく本サービスの利用許諾は、本サービスに関する運営者または運営者にライセンスを許諾している者の知的財産権の使用許諾を意味するものではありません。
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第8条（サービス内容の変更等およびプロトタイプ版について）</h2>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>本サービスは現在「プロトタイプ版」として提供されており、予告なく機能の追加、変更、または提供の終了を行う場合があります。</li>
+                        <li>運営者は、将来において本サービスの利用料金の改定や、無料機能と有料機能の範囲の変更を行う権利を留保します。変更を行う場合は、事前に本サービス上または適宜の方法で告知します。</li>
+                        <li>運営者は、本条に基づき運営者が行った措置に基づき利用者に生じた損害について一切の責任を負いません。</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第9条（保証の否認及び免責）</h2>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>運営者は、本サービスが利用者の特定の目的に適合すること、期待する機能・商品的価値・正確性・有用性を有すること、利用者による本サービスの利用が利用者に適用のある法令または業界団体の内部規則等に適合すること、継続的に利用できること、及び不具合が生じないことについて、明示又は黙示を問わず何ら保証するものではありません。</li>
+                        <li>税理士法に定める税務相談等、個別具体的な税務に関する質問・相談について、運営者は一切応じることができません。</li>
+                        <li>本サービスに関連して利用者と他の利用者または第三者との間において生じた取引、連絡、紛争等については、利用者が自己の責任によって解決するものとします。</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第10条（利用規約の変更）</h2>
+                    <p>
+                        運営者は、運営者が必要と認めた場合は、本規約を変更できるものとします。本規約を変更する場合、変更後の本規約の施行時期及び内容を本サービス上での掲示その他の適切な方法により周知し、または利用者に通知します。
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">第11条（準拠法及び管轄裁判所）</h2>
+                    <ol class="list-decimal pl-6 space-y-2">
+                        <li>本規約の準拠法は日本法とします。</li>
+                        <li>本規約または本サービスに起因し、または関連する一切の紛争については、運営者の所在地を管轄する地方裁判所または簡易裁判所を第一審の専属的合意管轄裁判所とします。</li>
+                    </ol>
+                </section>
+
+                <div class="mt-12 pt-6 border-t border-gray-200 text-sm text-gray-500 text-right">
+                    制定日：2026年3月1日
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <a href="landing_page.html" class="inline-flex items-center text-orange-600 hover:text-orange-800 transition font-medium">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                トップページへ戻る
+            </a>
+        </div>
+    </main>
+
+    <footer class="bg-gray-900 py-8 text-gray-400 mt-12">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs">
+            &copy; 2026 どんぶり帳簿 All rights reserved.
+        </div>
+    </footer>
+
+</body>
+</html>

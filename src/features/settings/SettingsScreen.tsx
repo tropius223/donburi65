@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../hooks/useStore';
-import type { OpeningBalances } from '../../types';
+import type { OpeningBalances, AppData } from '../../types';
 
 const ASSET_ACCOUNTS = [
   '売掛金', '事業主貸', '現金', '当座預金', '定期預金', 'その他の預金', '受取手形', '有価証券',
@@ -13,7 +13,8 @@ const LIABILITY_ACCOUNTS = [
 ];
 
 const CAPITAL_ACCOUNTS = [
-  '元入金'
+  '元入金',
+  '青色申告特別控除前の所得金額'
 ];
 
 type PrevReceivable = { id: string; date: string; amount: number };
@@ -112,8 +113,29 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
+  const handleResetData = () => {
+    if (!appData) return;
+    if (window.confirm('本当にすべてのデータを初期化しますか？\n※この操作は取り消せません。Google Drive上のデータも真っ新な状態に上書きされます。')) {
+      const initialData: AppData = {
+        version: "1.4",
+        userId: appData.userId,
+        years: {
+          [currentYear]: {
+            apportionRate: 1,
+            openingBalances: { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 },
+            sales: [],
+            expenses: [],
+            purchases: [],
+            inventory: []
+          }
+        }
+      };
+      setAppData(initialData);
+    }
+  };
+
   const renderAccountInput = (accountName: string) => {
-    const recommended = ['売掛金', '事業主貸', '元入金'].includes(accountName);
+    const recommended = ['売掛金', '事業主貸', '元入金', '青色申告特別控除前の所得金額'].includes(accountName);
     const displayValue = inputValues[accountName] !== undefined ? inputValues[accountName] : '';
     
     return (
@@ -146,6 +168,11 @@ export const SettingsScreen: React.FC = () => {
   const openingAccountsReceivable = openingBalances['売掛金'] || 0;
   // 過去の帳簿データがない場合のみ、金額の不一致をチェックする
   const isReceivablesMismatch = !hasPreviousYearData && prevReceivablesTotal !== openingAccountsReceivable;
+
+  // 貸借バランスの確認計算
+  const totalAssets = ASSET_ACCOUNTS.reduce((sum, account) => sum + (openingBalances[account] || 0), 0);
+  const totalLiabilitiesAndCapital = [...LIABILITY_ACCOUNTS, ...CAPITAL_ACCOUNTS].reduce((sum, account) => sum + (openingBalances[account] || 0), 0);
+  const isBalanceMatch = totalAssets === totalLiabilitiesAndCapital;
 
   return (
     <div className="space-y-8">
@@ -248,6 +275,52 @@ export const SettingsScreen: React.FC = () => {
 
           </div>
         </div>
+        
+        {/* 貸借バランスの確認UI */}
+        <div className="px-4 py-4 sm:px-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
+            <div className="flex space-x-6 mb-2 sm:mb-0">
+              <div>
+                <span className="text-gray-500 mr-2">資産の部 合計:</span>
+                <span className="font-bold text-gray-900">{totalAssets.toLocaleString()} 円</span>
+              </div>
+              <div>
+                <span className="text-gray-500 mr-2">負債・資本の部 合計:</span>
+                <span className="font-bold text-gray-900">{totalLiabilitiesAndCapital.toLocaleString()} 円</span>
+              </div>
+            </div>
+            <div>
+              {isBalanceMatch ? (
+                <span className="text-green-600 font-bold flex items-center bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                  <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  貸借一致
+                </span>
+              ) : (
+                <span className="text-red-600 font-bold flex items-center bg-red-50 px-3 py-1 rounded-full border border-red-200">
+                  <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  差額: {Math.abs(totalAssets - totalLiabilitiesAndCapital).toLocaleString()} 円
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white shadow sm:rounded-lg p-6 border-t-4 border-red-500">
+        <h3 className="text-lg font-medium text-red-600 border-b pb-4 mb-6">危険な操作</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          入力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。旧データの不整合をリセットしたい場合に使用してください。
+        </p>
+        <button
+          onClick={handleResetData}
+          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
+        >
+          全データを初期化する
+        </button>
       </div>
 
     </div>

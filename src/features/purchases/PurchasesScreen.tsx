@@ -1,18 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { Purchase } from '../../types';
 
 // 既存の仕入明細を編集・表示するための行コンポーネント
 const PurchaseRow = ({ purchase, currentYear, onUpdate, onDelete }: { purchase: Purchase; currentYear: string; onUpdate: (p: Purchase) => void; onDelete: (id: string) => void }) => {
   const [editData, setEditData] = useState(purchase);
+  const [displayAmount, setDisplayAmount] = useState(purchase.amount === 0 ? '' : purchase.amount.toLocaleString());
 
   // 親の状態が変更されたらローカル状態も同期する
   useEffect(() => {
     setEditData(purchase);
+    setDisplayAmount(purchase.amount === 0 ? '' : purchase.amount.toLocaleString());
   }, [purchase]);
 
   const handleChange = (field: keyof Purchase, value: string | number) => {
     setEditData({ ...editData, [field]: value });
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 数字以外の文字を削除
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    if (!raw) {
+      setDisplayAmount('');
+      handleChange('amount', 0);
+    } else {
+      const num = parseInt(raw, 10);
+      setDisplayAmount(num.toLocaleString());
+      handleChange('amount', num);
+    }
   };
 
   const handleBlur = () => {
@@ -24,6 +39,7 @@ const PurchaseRow = ({ purchase, currentYear, onUpdate, onDelete }: { purchase: 
       } else {
         // 不正な値の場合は元に戻す
         setEditData(purchase);
+        setDisplayAmount(purchase.amount === 0 ? '' : purchase.amount.toLocaleString());
       }
     }
   };
@@ -44,6 +60,7 @@ const PurchaseRow = ({ purchase, currentYear, onUpdate, onDelete }: { purchase: 
       <td className="p-0 border-l border-gray-200">
         <input 
           type="text" 
+          list="supplier-list"
           value={editData.supplier} 
           onChange={(e) => handleChange('supplier', e.target.value)} 
           onBlur={handleBlur} 
@@ -53,9 +70,10 @@ const PurchaseRow = ({ purchase, currentYear, onUpdate, onDelete }: { purchase: 
       </td>
       <td className="p-0 border-l border-gray-200">
         <input 
-          type="number" 
-          value={editData.amount === 0 ? '' : editData.amount} 
-          onChange={(e) => handleChange('amount', parseInt(e.target.value, 10) || 0)} 
+          type="text" 
+          inputMode="numeric"
+          value={displayAmount} 
+          onChange={handleAmountChange} 
           onBlur={handleBlur} 
           placeholder="0" 
           className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-right font-medium" 
@@ -82,6 +100,14 @@ export const PurchasesScreen: React.FC = () => {
   const [newDate, setNewDate] = useState('');
   const [newSupplier, setNewSupplier] = useState('');
   const [newAmount, setNewAmount] = useState<number | ''>('');
+  const [newAmountDisplay, setNewAmountDisplay] = useState('');
+
+  // 仕入先の重複なしリストを生成
+  const supplierOptions = useMemo(() => {
+    if (!currentYearData) return [];
+    const suppliers = currentYearData.purchases.map(p => p.supplier).filter(s => s.trim() !== '');
+    return Array.from(new Set(suppliers));
+  }, [currentYearData]);
 
   if (!currentYearData && !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
@@ -124,6 +150,18 @@ export const PurchasesScreen: React.FC = () => {
     updateStorePurchases(updatedPurchases);
   };
 
+  const handleNewAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    if (!raw) {
+      setNewAmountDisplay('');
+      setNewAmount('');
+    } else {
+      const num = parseInt(raw, 10);
+      setNewAmountDisplay(num.toLocaleString());
+      setNewAmount(num);
+    }
+  };
+
   const handleAddPurchase = () => {
     if (!newDate || !newDate.startsWith(currentYear) || !newSupplier || newAmount === '') return;
 
@@ -140,6 +178,7 @@ export const PurchasesScreen: React.FC = () => {
     setNewDate('');
     setNewSupplier('');
     setNewAmount('');
+    setNewAmountDisplay('');
   };
 
   // エンターキーで追加を実行
@@ -151,6 +190,13 @@ export const PurchasesScreen: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* datalistを配置 */}
+      <datalist id="supplier-list">
+        {supplierOptions.map((supplier, idx) => (
+          <option key={idx} value={supplier} />
+        ))}
+      </datalist>
+
       <div className="bg-white shadow sm:rounded-lg overflow-hidden flex flex-col">
         <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 bg-gray-50">
           <div>
@@ -190,6 +236,7 @@ export const PurchasesScreen: React.FC = () => {
                 <td className="p-0 border-l border-gray-200">
                   <input 
                     type="text" 
+                    list="supplier-list"
                     value={newSupplier} 
                     onChange={(e) => setNewSupplier(e.target.value)} 
                     onKeyDown={handleKeyDown} 
@@ -199,9 +246,10 @@ export const PurchasesScreen: React.FC = () => {
                 </td>
                 <td className="p-0 border-l border-gray-200">
                   <input 
-                    type="number" 
-                    value={newAmount} 
-                    onChange={(e) => setNewAmount(parseInt(e.target.value, 10) || '')} 
+                    type="text" 
+                    inputMode="numeric"
+                    value={newAmountDisplay} 
+                    onChange={handleNewAmountChange} 
                     onKeyDown={handleKeyDown} 
                     placeholder="0" 
                     className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-right font-bold text-blue-900 placeholder-blue-300" 

@@ -92,7 +92,7 @@ const ExpenseCell: React.FC<{
   col: ExpenseColumn;
   amount: number | '';
   apportionRate: number;
-  onAmountChange: (month: number, colLabel: string, colIsApportioned: boolean, value: string) => void;
+  onAmountChange: (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, value: string) => void;
 }> = ({ month, col, amount, apportionRate, onAmountChange }) => {
   const [display, setDisplay] = useState('');
 
@@ -100,32 +100,45 @@ const ExpenseCell: React.FC<{
     if (amount === '' || amount === 0) {
       setDisplay('');
     } else {
-      const str = amount.toString();
+      const str = Number(amount).toLocaleString();
       setDisplay(col.isApportioned ? `[${str}]` : str);
     }
   }, [amount, col.isApportioned]);
 
   const handleFocus = () => {
-    if (col.isApportioned && display.startsWith('[') && display.endsWith(']')) {
-      setDisplay(display.slice(1, -1));
+    if (!display) return;
+    // フォーカス時はカッコを外し、数値のみ（カンマあり）にする
+    const raw = display.replace(/[^0-9]/g, '');
+    if (raw) {
+      setDisplay(parseInt(raw, 10).toLocaleString());
+    } else {
+      setDisplay('');
     }
   };
 
   const handleBlur = () => {
-    const num = parseInt(display.replace(/[^0-9]/g, ''), 10) || 0;
+    const raw = display.replace(/[^0-9]/g, '');
+    const num = parseInt(raw, 10) || 0;
+    
     if (num === 0) {
       setDisplay('');
     } else {
-      setDisplay(col.isApportioned ? `[${num}]` : num.toString());
+      const str = num.toLocaleString();
+      setDisplay(col.isApportioned ? `[${str}]` : str);
     }
-    onAmountChange(month, col.label, col.isApportioned, num.toString());
+    // フォーカスが外れたタイミングで、初めて親(Store)を更新する
+    onAmountChange(month, col.label, col.category, col.isApportioned, num.toString());
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const numeric = parseInt(raw.replace(/[^0-9]/g, ''), 10) || 0;
-    setDisplay(raw);
-    onAmountChange(month, col.label, col.isApportioned, numeric.toString());
+    // 入力中は親(Store)を更新せず、表示用のローカルステートのみを更新する
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    if (!raw) {
+      setDisplay('');
+    } else {
+      const num = parseInt(raw, 10);
+      setDisplay(num.toLocaleString());
+    }
   };
 
   const apportioned = col.isApportioned && amount !== '' ? Math.floor(Number(amount) * apportionRate) : 0;
@@ -136,6 +149,7 @@ const ExpenseCell: React.FC<{
       <div className="relative group">
         <input
           type="text"
+          inputMode="numeric"
           className="w-full border-0 bg-transparent py-3 px-2 text-right text-sm focus:ring-2 focus:ring-inset focus:ring-blue-500"
           value={display}
           onFocus={handleFocus}
@@ -177,11 +191,15 @@ export const ExpensesScreen: React.FC = () => {
 
     let newExpenses = [...expenses];
 
+    // 列名や勘定科目が変更された場合、紐づく費用データのcolLabel/categoryも更新する
     if (field === 'label' && oldLabel !== value) {
-      newExpenses = newExpenses.map(e => e.category === oldLabel ? { ...e, category: value as string } : e);
+      newExpenses = newExpenses.map(e => e.colLabel === oldLabel ? { ...e, colLabel: value as string } : e);
+    }
+    if (field === 'category') {
+      newExpenses = newExpenses.map(e => e.colLabel === newColumns[colIndex].label ? { ...e, category: value as string } : e);
     }
     if (field === 'isApportioned') {
-      newExpenses = newExpenses.map(e => e.category === newColumns[colIndex].label ? { ...e, isApportioned: value as boolean } : e);
+      newExpenses = newExpenses.map(e => e.colLabel === newColumns[colIndex].label ? { ...e, isApportioned: value as boolean } : e);
     }
 
     setAppData({
@@ -222,7 +240,7 @@ export const ExpensesScreen: React.FC = () => {
     const labelToRemove = columns[colIndex].label;
     
     const newColumns = columns.filter((_, idx) => idx !== colIndex);
-    const newExpenses = expenses.filter(e => e.category !== labelToRemove);
+    const newExpenses = expenses.filter(e => e.colLabel !== labelToRemove);
 
     setAppData({
       ...appData,
@@ -237,26 +255,27 @@ export const ExpensesScreen: React.FC = () => {
     });
   };
 
-  const handleUpdateAmount = (month: number, colLabel: string, colIsApportioned: boolean, value: string) => {
+  const handleUpdateAmount = (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, value: string) => {
     if (!appData) return;
 
     const amount = parseInt(value, 10) || 0;
     const yearData = appData.years[currentYear];
     
     let newExpenses = [...expenses];
-    const index = newExpenses.findIndex((e) => e.month === month && e.category === colLabel);
+    const index = newExpenses.findIndex((e) => e.month === month && e.colLabel === colLabel);
 
     if (index > -1) {
       if (amount === 0) {
         newExpenses.splice(index, 1);
       } else {
-        newExpenses[index] = { ...newExpenses[index], amount };
+        newExpenses[index] = { ...newExpenses[index], amount, colLabel, category: colCategory };
       }
     } else if (amount > 0) {
       const newExpense: Expense = {
         id: crypto.randomUUID(),
         month,
-        category: colLabel,
+        colLabel,
+        category: colCategory,
         amount,
         isApportioned: colIsApportioned,
       };
@@ -297,12 +316,12 @@ export const ExpensesScreen: React.FC = () => {
   };
 
   const getAmount = (month: number, label: string) => {
-    const expense = expenses.find((e) => e.month === month && e.category === label);
+    const expense = expenses.find((e) => e.month === month && e.colLabel === label);
     return expense ? expense.amount : '';
   };
 
   const getColumnTotal = (label: string) => {
-    return expenses.filter((e) => e.category === label)
+    return expenses.filter((e) => e.colLabel === label)
       .reduce((sum, e) => sum + (e.isApportioned ? Math.floor(e.amount * rate) : e.amount), 0);
   };
 
@@ -355,7 +374,7 @@ export const ExpensesScreen: React.FC = () => {
           <table className="min-w-full border-collapse">
             <thead>
               <tr className="bg-gray-100">
-                <th className="sticky left-0 z-5 bg-gray-100 border-b border-r border-gray-300 p-2 text-sm font-bold text-gray-700 w-20 align-middle text-center">
+                <th className="sticky left-0 z-10 bg-gray-100 border-b border-r border-gray-300 p-2 text-sm font-bold text-gray-700 w-20 align-middle text-center">
                   発生月
                 </th>
                 {columns.map((col, idx) => (
@@ -382,7 +401,7 @@ export const ExpensesScreen: React.FC = () => {
             <tbody>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
                 <tr key={month} className="hover:bg-blue-50/30 transition-colors">
-                  <td className="sticky left-0 z-4 bg-white border-b border-r border-gray-200 p-2 text-sm font-medium text-gray-700 text-center">
+                  <td className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 p-2 text-sm font-medium text-gray-700 text-center">
                     {month}月
                   </td>
                   {columns.map((col, idx) => (
@@ -404,7 +423,7 @@ export const ExpensesScreen: React.FC = () => {
             </tbody>
             <tfoot>
               <tr className="bg-gray-100 font-bold">
-                <td className="sticky left-0 z-4 bg-gray-100 border-r border-gray-300 p-2 text-center text-sm text-gray-700">
+                <td className="sticky left-0 z-10 bg-gray-100 border-r border-gray-300 p-2 text-center text-sm text-gray-700">
                   合計
                 </td>
                 {columns.map((col, idx) => (

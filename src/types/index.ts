@@ -19,7 +19,8 @@ export interface Sale {
 export interface Expense {
   id: string;
   month: number; // 発生月 (1-12)
-  category: string; // 科目 (列名と紐づく)
+  colLabel: string; // 列の名称 (例: 家賃)
+  category: string; // 勘定科目 (例: 地代家賃)
   amount: number; // 金額
   isApportioned: boolean; // 按分有無
 }
@@ -47,6 +48,9 @@ export interface ExpenseColumn {
 
 export interface YearData {
   apportionRate: number; // 事業用按分比率 (例: 0.5)
+  apportionType?: 'area' | 'time' | 'manual'; // 按分の根拠
+  apportionTotal?: number; // 全体の数値（面積・時間など）
+  apportionBusiness?: number; // 事業用の数値
   openingBalances: OpeningBalances;
   sales: Sale[];
   expenses: Expense[];

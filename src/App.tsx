@@ -8,6 +8,7 @@ import { PurchasesScreen } from './features/purchases/PurchasesScreen';
 import { InventoryScreen } from './features/inventory/InventoryScreen';
 import { SettingsScreen } from './features/settings/SettingsScreen';
 import { ReportsScreen } from './features/reports/ReportsScreen';
+import { BlueReturnScreen } from './features/reports/BlueReturnScreen';
 
 function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
@@ -18,9 +19,8 @@ function App() {
   const appData = useStore((state) => state.appData);
 
   const [activeTab, setActiveTab] = useState('sales');
-  // 保存ステータス管理
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
-  // 初回ロード判定用
+  const [isManagingSubscription, setIsManagingSubscription] = useState(false);
   const isInitialLoad = useRef(true);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -29,11 +29,33 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  // 自動保存（デバウンス処理）
+  const handleManageSubscription = async () => {
+    setIsManagingSubscription(true);
+    try {
+      const response = await fetch('/.netlify/functions/create-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail }),
+      });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.error === 'Customer not found') {
+        alert('課金履歴が見つかりません。');
+      } else {
+        alert('ポータルの表示に失敗しました。');
+      }
+    } catch (error) {
+      console.error('Portal Error:', error);
+      alert('通信エラーが発生しました。');
+    } finally {
+      setIsManagingSubscription(false);
+    }
+  };
+
   useEffect(() => {
     if (!appData) return;
 
-    // 初回データ読み込み時は保存をスキップ
     if (isInitialLoad.current) {
       isInitialLoad.current = false;
       return;
@@ -41,12 +63,10 @@ function App() {
 
     setSaveStatus('unsaved');
 
-    // 以前のタイマーがあればクリア（入力が続く限り保存を延期）
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
     }
 
-    // 3秒間変更がなければ保存を実行
     autoSaveTimer.current = setTimeout(async () => {
       setSaveStatus('saving');
       try {
@@ -74,8 +94,9 @@ function App() {
     { id: 'expenses', label: '費用' },
     { id: 'purchases', label: '仕入' },
     { id: 'inventory', label: '棚卸' },
-    { id: 'settings', label: '開始仕訳' },
     { id: 'reports', label: '帳票 (有料)' },
+    { id: 'blue-return', label: '青色申告' },
+    { id: 'settings', label: '設定' },
   ];
 
   const renderSaveStatus = () => {
@@ -94,7 +115,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
           <div className="flex items-center">
@@ -150,14 +171,34 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
         {activeTab === 'sales' && <SalesScreen />}
         {activeTab === 'expenses' && <ExpensesScreen />}
         {activeTab === 'purchases' && <PurchasesScreen />}
         {activeTab === 'inventory' && <InventoryScreen />}
         {activeTab === 'reports' && <ReportsScreen />}
+        {activeTab === 'blue-return' && <BlueReturnScreen />}
         {activeTab === 'settings' && <SettingsScreen />}
       </main>
+
+      {/* アプリ全体のフッターを追加 */}
+      <footer className="bg-white border-t border-gray-200 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-sm text-gray-500">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <button
+              onClick={handleManageSubscription}
+              disabled={isManagingSubscription}
+              className="text-gray-800 hover:text-gray-900 hover:underline disabled:opacity-50"
+            >
+              {isManagingSubscription ? '処理中...' : '有料プランの管理・解約'}
+            </button>
+            <a href="/terms.html" className="hover:text-gray-900 hover:underline">利用規約</a>
+            <a href="#" className="hover:text-gray-900 hover:underline">プライバシーポリシー</a>
+            <a href="#" className="hover:text-gray-900 hover:underline">特定商取引法に基づく表記</a>
+          </div>
+          <div>&copy; {new Date().getFullYear()} どんぶり帳簿</div>
+        </div>
+      </footer>
     </div>
   );
 }
