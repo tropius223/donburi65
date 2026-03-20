@@ -5,10 +5,14 @@ import type { YearData } from '../types';
  */
 export const calculateApportionedExpense = (
   amount: number,
-  isApportioned: boolean,
+  isApportioned: boolean | string | undefined, // 古いデータの文字列混入に対応
   apportionRate: number
 ): number => {
-  if (!isApportioned) return amount;
+  // false（ブール値）、'false'（文字列）、または未定義の場合は全額（100%）を計上
+  if (isApportioned === false || isApportioned === 'false' || !isApportioned) {
+    return amount;
+  }
+  // true または 'true' の場合のみ、設定された按分比率を掛ける
   return Math.round(amount * apportionRate);
 };
 
@@ -29,18 +33,18 @@ export const calculateCostOfSales = (
  */
 export const calculateSummary = (yearData: YearData) => {
   // 売上合計
-  const totalSales = yearData.sales.reduce((sum, sale) => sum + sale.amount, 0);
+  const totalSales = yearData.sales.reduce((sum: number, sale: any) => sum + sale.amount, 0);
   
   // 仕入合計
-  const totalPurchases = yearData.purchases.reduce((sum, p) => sum + p.amount, 0);
+  const totalPurchases = yearData.purchases.reduce((sum: number, p: any) => sum + p.amount, 0);
   
   // 費用合計（按分後）
-  const totalExpenses = yearData.expenses.reduce((sum, exp) => {
+  const totalExpenses = yearData.expenses.reduce((sum: number, exp: any) => {
     return sum + calculateApportionedExpense(exp.amount, exp.isApportioned, yearData.apportionRate);
   }, 0);
 
   // 期末在庫合計
-  const closingInventory = yearData.inventory.reduce((sum, item) => sum + item.totalAmount, 0);
+  const closingInventory = yearData.inventory.reduce((sum: number, item: any) => sum + item.totalAmount, 0);
 
   // 売上原価
   const costOfSales = calculateCostOfSales(

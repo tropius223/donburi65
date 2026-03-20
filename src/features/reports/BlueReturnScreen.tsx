@@ -3,7 +3,7 @@ import { useStore } from '../../hooks/useStore';
 import { calculateSummary, calculateApportionedExpense } from '../../utils/accounting';
 
 // 開発用フラグ：帳票画面の編集時は true にし、本番公開時に false に戻してください
-const DEV_SKIP_SUBSCRIPTION_CHECK = false;
+const DEV_SKIP_SUBSCRIPTION_CHECK = true;
 
 export const BlueReturnScreen: React.FC = () => {
   const userEmail = useStore((state) => state.userEmail);
@@ -243,23 +243,19 @@ export const BlueReturnScreen: React.FC = () => {
       {!isSubscribed && (
         <div className="bg-white border-t-4 border-blue-500 shadow-md p-6 rounded-lg text-center max-w-3xl mx-auto mt-4 animate-fade-in mb-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-3">青色申告決算書の機能は有料です</h3>
-          <p className="text-gray-600 mb-6">
-            青色申告決算書の金額を表示したり、出力機能を利用するには、年間1,000円の購読が必要です。<br/>
-            （現在はフォーマットのみご確認いただけます）
-          </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <button
               onClick={handlePurchase}
               disabled={isProcessingPayment}
               className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50"
             >
-              {isProcessingPayment ? '処理中...' : '年間 1,000円で購入する'}
+              {isProcessingPayment ? '処理中...' : '年間 1,000円で購入'}
             </button>
             <button
               onClick={() => checkStatus(true)}
               className="text-sm text-blue-600 hover:underline font-medium"
             >
-              既に購入済みの場合はこちら（再確認）
+              購入済みの場合（再確認）
             </button>
           </div>
         </div>
@@ -573,20 +569,7 @@ export const BlueReturnScreen: React.FC = () => {
             <h2 className="area-title" style={{ marginTop: '40px' }}>貸借対照表（資産負債調）の入力</h2>
             
             <div className="balance-sheet">
-              <div className="form-control2 form-element inputday" style={{ marginBottom: '20px' }}>
-                <div className="form-content first">
-                  <div className="dataSection aliun">
-                    <input type="text" className="dayDisabled" readOnly value="令和" />
-                    <input type="text" className="dayDisabled" readOnly value="7" />
-                    <span>年</span>
-                    <input type="text" className="dayDisabled" readOnly value="12" />
-                    <span>月</span>
-                    <input type="text" className="dayDisabled" readOnly value="31" />
-                    <span>日</span>
-                    <span className="minText">現在</span>
-                  </div>
-                </div>
-              </div>
+              
 
               {/* 資産の部 */}
               <div className="l-calculation">

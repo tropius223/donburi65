@@ -94,9 +94,9 @@ function App() {
     { id: 'expenses', label: '費用' },
     { id: 'purchases', label: '仕入' },
     { id: 'inventory', label: '棚卸' },
-    { id: 'reports', label: '帳票 (有料)' },
+    { id: 'reports', label: '帳票' },
     { id: 'blue-return', label: '青色申告' },
-    { id: 'settings', label: '設定' },
+    { id: 'settings', label: '開始仕訳' },
   ];
 
   const renderSaveStatus = () => {
@@ -193,7 +193,7 @@ function App() {
               {isManagingSubscription ? '処理中...' : '有料プランの管理・解約'}
             </button>
             <a href="/terms.html" className="hover:text-gray-900 hover:underline">利用規約</a>
-            <a href="#" className="hover:text-gray-900 hover:underline">プライバシーポリシー</a>
+            <a href="/privacy.html" className="hover:text-gray-900 hover:underline">プライバシーポリシー</a>
             <a href="#" className="hover:text-gray-900 hover:underline">特定商取引法に基づく表記</a>
           </div>
           <div>&copy; {new Date().getFullYear()} どんぶり帳簿</div>

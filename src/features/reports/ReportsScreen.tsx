@@ -4,7 +4,7 @@ import { calculateSummary } from '../../utils/accounting';
 
 // 開発用フラグ：帳票画面の編集時は true にし、本番公開時に false に戻してください
 // ※未課金時のモザイク表現を確認できるよう、一時的に false にしています
-const DEV_SKIP_SUBSCRIPTION_CHECK = false;
+const DEV_SKIP_SUBSCRIPTION_CHECK = true;
 
 export const ReportsScreen = () => {
   const userEmail = useStore((state) => state.userEmail);
@@ -361,23 +361,20 @@ export const ReportsScreen = () => {
       {!isSubscribed && (
         <div className="bg-white border-t-4 border-blue-500 shadow-md p-6 rounded-lg text-center max-w-3xl mx-auto mt-4 animate-fade-in">
           <h3 className="text-2xl font-bold text-gray-900 mb-3">帳票出力機能は有料です</h3>
-          <p className="text-gray-600 mb-6">
-            仕訳帳、総勘定元帳、損益計算書、貸借対照表の<strong className="text-blue-600">金額を表示</strong>したり、出力機能を利用するには、年間1,000円の購読が必要です。<br/>
-            （※現在はフォーマットのみご確認いただけます）
-          </p>
+
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <button
               onClick={handlePurchase}
               disabled={isProcessingPayment}
               className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50"
             >
-              {isProcessingPayment ? '処理中...' : '年間 1,000円で購入する'}
+              {isProcessingPayment ? '処理中...' : '年間 1,000円で購入'}
             </button>
             <button
               onClick={() => checkStatus(true)}
               className="text-sm text-blue-600 hover:underline font-medium"
             >
-              既に購入済みの場合はこちら（再確認）
+              購入済みの場合（再確認）
             </button>
           </div>
         </div>
