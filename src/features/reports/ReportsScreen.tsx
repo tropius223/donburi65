@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../../hooks/useStore';
-import { calculateSummary } from '../../utils/accounting';
+import { calculateSummary, calculateApportionedExpense } from '../../utils/accounting';
 
-// 開発用フラグ：帳票画面の編集時は true にし、本番公開時に false に戻してください
-// ※未課金時のモザイク表現を確認できるよう、一時的に false にしています
 const DEV_SKIP_SUBSCRIPTION_CHECK = true;
 
 export const ReportsScreen = () => {
@@ -18,7 +16,6 @@ export const ReportsScreen = () => {
   const [reportTab, setReportTab] = useState<'pl' | 'bs' | 'journal' | 'ledger'>('pl');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
 
-  // 課金ステータスの確認関数
   const checkStatus = async (force = false) => {
     if (DEV_SKIP_SUBSCRIPTION_CHECK) return;
     if (!userEmail) return;
@@ -73,7 +70,6 @@ export const ReportsScreen = () => {
 
   const summary = currentYearData ? calculateSummary(currentYearData) : null;
 
-  // 金額表示用ヘルパー（未課金時はダミー数値にブラーをかけて表示）
   const renderAmount = (amount: number | string) => {
     if (!isSubscribed) {
       return <span className="filter blur-sm select-none text-gray-400 font-mono">888,888</span>;
@@ -81,16 +77,14 @@ export const ReportsScreen = () => {
     return typeof amount === 'number' ? amount.toLocaleString() : amount;
   };
 
-  // 期首元入金の計算
   const getBal = (key: string) => currentYearData?.openingBalances[key] || 0;
   const openingMotouire = currentYearData ? getBal('元入金') + getBal('青色申告特別控除前の所得金額') + getBal('事業主借') - getBal('事業主貸') : 0;
 
-  // 経費の科目ごとの集計
   const expenseTotals = useMemo(() => {
     if (!currentYearData) return {};
     const totals: Record<string, number> = {};
-    currentYearData.expenses.forEach(e => {
-      const amount = Math.round(e.amount * currentYearData.apportionRate);
+    currentYearData.expenses.forEach((e: any) => {
+      const amount = calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate);
       if (amount > 0) {
         totals[e.category] = (totals[e.category] || 0) + amount;
       }
@@ -98,7 +92,6 @@ export const ReportsScreen = () => {
     return totals;
   }, [currentYearData]);
 
-  // 仕訳帳と総勘定元帳データの生成ロジック
   const { entries, ledgerMap } = useMemo(() => {
     if (!currentYearData) return { entries: [], ledgerMap: new Map() };
     
@@ -114,8 +107,7 @@ export const ReportsScreen = () => {
 
     let journal: JournalEntry[] = [];
     
-    // 売上（発生と入金）
-    currentYearData.sales.forEach(sale => {
+    currentYearData.sales.forEach((sale: any) => {
       journal.push({
         id: `sale-${sale.id}-1`,
         date: sale.salesDate,
@@ -138,7 +130,6 @@ export const ReportsScreen = () => {
       }
     });
 
-    // 前年売掛金回収
     const prevReceivables = (currentYearData as any).previousReceivables || [];
     prevReceivables.forEach((r: any) => {
       journal.push({
@@ -152,8 +143,7 @@ export const ReportsScreen = () => {
       });
     });
 
-    // 仕入
-    currentYearData.purchases.forEach(p => {
+    currentYearData.purchases.forEach((p: any) => {
       journal.push({
         id: `purchase-${p.id}`,
         date: p.date,
@@ -165,13 +155,12 @@ export const ReportsScreen = () => {
       });
     });
 
-    // 経費 (日付はその月の末日とする)
     const getEndOfMonth = (year: string, month: number) => {
       const d = new Date(parseInt(year), month, 0);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
-    currentYearData.expenses.forEach(e => {
-      const apportioned = Math.round(e.amount * currentYearData.apportionRate);
+    currentYearData.expenses.forEach((e: any) => {
+      const apportioned = calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate);
       if (apportioned > 0) {
         journal.push({
           id: `expense-${e.id}`,
@@ -185,10 +174,9 @@ export const ReportsScreen = () => {
       }
     });
 
-    // 決算整理仕訳 (12月31日)
     const endOfYear = `${currentYear}-12-31`;
     const openingInventory = currentYearData.openingBalances['商品'] || 0;
-    const closingInventory = currentYearData.inventory.reduce((sum, item) => sum + item.totalAmount, 0);
+    const closingInventory = currentYearData.inventory.reduce((sum: number, item: any) => sum + item.totalAmount, 0);
 
     if (openingInventory > 0) {
       journal.push({
@@ -202,7 +190,7 @@ export const ReportsScreen = () => {
       });
     }
 
-    const totalPurchases = currentYearData.purchases.reduce((sum, p) => sum + p.amount, 0);
+    const totalPurchases = currentYearData.purchases.reduce((sum: number, p: any) => sum + p.amount, 0);
     if (totalPurchases > 0) {
       journal.push({
         id: 'adj-pur',
@@ -227,7 +215,6 @@ export const ReportsScreen = () => {
       });
     }
 
-    // 事業主貸と事業主借の相殺振替
     let jigyoDr = 0;
     let jigyoCr = 0;
     journal.forEach(entry => {
@@ -248,10 +235,8 @@ export const ReportsScreen = () => {
       });
     }
 
-    // 日付順にソート
     journal.sort((a, b) => a.date.localeCompare(b.date));
 
-    // 総勘定元帳 (Ledger) の作成
     const accounts = new Set<string>();
     Object.keys(currentYearData.openingBalances).forEach(k => accounts.add(k));
     journal.forEach(e => {
@@ -259,7 +244,6 @@ export const ReportsScreen = () => {
       accounts.add(e.creditAccount);
     });
 
-    // 借方がプラスになる勘定科目かどうかの判定
     const isDebitPlus = (account: string) => {
       const creditAccounts = ['支払手形', '買掛金', '借入金', '未払金', '前受金', '預り金', '貸倒引当金', '事業主借', '元入金', '青色申告特別控除前の所得金額', '売上高'];
       return !creditAccounts.includes(account);
@@ -279,7 +263,6 @@ export const ReportsScreen = () => {
       const ledgerEntries: LedgerEntry[] = [];
       let balance = currentYearData.openingBalances[account] || 0;
       
-      // 開始残高の記載
       if (balance !== 0) {
         ledgerEntries.push({
           date: `${currentYear}-01-01`,
@@ -291,7 +274,6 @@ export const ReportsScreen = () => {
         });
       }
 
-      // 該当する仕訳をすべて追加
       journal.forEach(e => {
         if (e.debitAccount === account) {
           balance += isDebitPlus(account) ? e.debitAmount : -e.debitAmount;
@@ -317,7 +299,6 @@ export const ReportsScreen = () => {
         }
       });
 
-      // 動きがあった、または残高がある科目だけをMapに登録
       if (ledgerEntries.length > 0) {
         map.set(account, ledgerEntries);
       }
@@ -326,7 +307,6 @@ export const ReportsScreen = () => {
     return { entries: journal, ledgerMap: map };
   }, [currentYearData, currentYear]);
 
-  // 初期表示の勘定科目を設定
   useEffect(() => {
     if (ledgerMap.size > 0 && !selectedAccount) {
       const sortedKeys = Array.from(ledgerMap.keys()).sort();
@@ -335,6 +315,54 @@ export const ReportsScreen = () => {
     }
   }, [ledgerMap, selectedAccount]);
 
+  const { bsAssetItems, bsLiabilityItems, bsAssetsTotal, bsLiabilitiesTotal } = useMemo(() => {
+    if (!currentYearData) return { bsAssetItems: [], bsLiabilityItems: [], bsAssetsTotal: 0, bsLiabilitiesTotal: 0 };
+
+    const assets: { key: string, val: number }[] = [];
+    const liabilities: { key: string, val: number }[] = [];
+
+    const getEndBalance = (account: string) => {
+      if (ledgerMap.has(account)) {
+        const entries = ledgerMap.get(account)!;
+        return entries[entries.length - 1].balance;
+      }
+      return currentYearData.openingBalances[account] || 0;
+    };
+
+    const accounts = new Set<string>();
+    Object.keys(currentYearData.openingBalances).forEach(k => accounts.add(k));
+    Array.from(ledgerMap.keys()).forEach(k => accounts.add(k));
+
+    const expenseCategories = new Set(currentYearData.expenses.map((e: any) => e.category));
+    const excludeAccounts = ['元入金', '青色申告特別控除前の所得金額', '事業主借', '事業主貸', '売上高', '売上原価', '仕入高', ...Array.from(expenseCategories)];
+
+    accounts.forEach(key => {
+      if (excludeAccounts.includes(key)) return;
+      const bal = getEndBalance(key);
+      if (bal !== 0) {
+        if (['支払手形', '買掛金', '借入金', '未払金', '前受金', '預り金', '貸倒引当金'].includes(key)) {
+          liabilities.push({ key, val: bal });
+        } else {
+          assets.push({ key, val: bal });
+        }
+      }
+    });
+
+    const startJigyoKashi = currentYearData.openingBalances['事業主貸'] || 0;
+    const endJigyoKashi = getEndBalance('事業主貸');
+    const netJigyoKashi = endJigyoKashi - startJigyoKashi;
+    if (netJigyoKashi !== 0) assets.push({ key: '事業主貸', val: netJigyoKashi });
+
+    const startJigyoKari = currentYearData.openingBalances['事業主借'] || 0;
+    const endJigyoKari = getEndBalance('事業主借');
+    const netJigyoKari = endJigyoKari - startJigyoKari;
+    if (netJigyoKari !== 0) liabilities.push({ key: '事業主借', val: netJigyoKari });
+
+    const assetsTotal = assets.reduce((sum, item) => sum + item.val, 0);
+    const liabilitiesTotal = liabilities.reduce((sum, item) => sum + item.val, 0) + openingMotouire + (summary?.income || 0);
+
+    return { bsAssetItems: assets, bsLiabilityItems: liabilities, bsAssetsTotal: assetsTotal, bsLiabilitiesTotal: liabilitiesTotal };
+  }, [currentYearData, ledgerMap, openingMotouire, summary?.income]);
 
   if (isLoading) {
     return (
@@ -345,19 +373,9 @@ export const ReportsScreen = () => {
     );
   }
 
-  // 貸借対照表の合計計算用
-  const bsAssetsTotal = currentYearData ? Object.entries(currentYearData.openingBalances)
-    .filter(([key]) => !['元入金', '青色申告特別控除前の所得金額', '事業主借', '事業主貸', '支払手形', '買掛金', '借入金', '未払金', '前受金', '預り金', '貸倒引当金'].includes(key))
-    .reduce((sum, [, val]) => sum + val, 0) : 0;
-
-  const bsLiabilitiesTotal = (currentYearData ? Object.entries(currentYearData.openingBalances)
-    .filter(([key]) => ['支払手形', '買掛金', '借入金', '未払金', '前受金', '預り金', '貸倒引当金'].includes(key))
-    .reduce((sum, [, val]) => sum + val, 0) : 0) + openingMotouire + (summary?.income || 0);
-
   return (
     <div className="space-y-6">
       
-      {/* 未課金時の案内バナー（画面をブロックしないインライン表示） */}
       {!isSubscribed && (
         <div className="bg-white border-t-4 border-blue-500 shadow-md p-6 rounded-lg text-center max-w-3xl mx-auto mt-4 animate-fade-in">
           <h3 className="text-2xl font-bold text-gray-900 mb-3">帳票出力機能は有料です</h3>
@@ -380,7 +398,6 @@ export const ReportsScreen = () => {
         </div>
       )}
 
-      {/* 帳票タブのナビゲーション（未課金でも操作可能） */}
       <div className="bg-white shadow sm:rounded-lg overflow-hidden">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex flex-wrap" aria-label="Tabs">
@@ -400,7 +417,6 @@ export const ReportsScreen = () => {
         </div>
       </div>
 
-      {/* 損益計算書タブ */}
       {reportTab === 'pl' && (
         <div className="bg-white shadow sm:rounded-lg overflow-hidden animate-fade-in">
           <div className="px-6 py-8 border-b border-gray-200 bg-gray-50 text-center">
@@ -422,7 +438,6 @@ export const ReportsScreen = () => {
                   <td className="py-3 px-4 text-right text-gray-900">{renderAmount((summary?.totalSales || 0) - (summary?.costOfSales || 0))} 円</td>
                 </tr>
                 
-                {/* 販売費及び一般管理費の詳細 */}
                 <tr className="bg-gray-50 font-bold border-t border-gray-200">
                   <td colSpan={2} className="py-2 px-4 text-gray-900">販売費及び一般管理費</td>
                 </tr>
@@ -447,7 +462,6 @@ export const ReportsScreen = () => {
         </div>
       )}
 
-      {/* 貸借対照表タブ */}
       {reportTab === 'bs' && (
         <div className="bg-white shadow sm:rounded-lg overflow-hidden animate-fade-in">
           <div className="px-6 py-8 border-b border-gray-200 bg-gray-50 text-center">
@@ -461,9 +475,7 @@ export const ReportsScreen = () => {
                     <tr className="bg-gray-100"><th colSpan={2} className="py-2 text-center border-b border-gray-200">資産の部</th></tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {currentYearData && Object.entries(currentYearData.openingBalances)
-                      .filter(([key, val]) => !['元入金', '青色申告特別控除前の所得金額', '事業主借', '事業主貸', '支払手形', '買掛金', '借入金', '未払金', '前受金', '預り金', '貸倒引当金'].includes(key) && val !== 0)
-                      .map(([key, val]) => (
+                    {bsAssetItems.map(({ key, val }) => (
                       <tr key={key}>
                         <td className="py-2 px-4 text-gray-600">{key}</td>
                         <td className="py-2 px-4 text-right">{renderAmount(val)} 円</td>
@@ -482,9 +494,7 @@ export const ReportsScreen = () => {
                     <tr className="bg-gray-100"><th colSpan={2} className="py-2 text-center border-b border-gray-200">負債・純資産の部</th></tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {currentYearData && Object.entries(currentYearData.openingBalances)
-                      .filter(([key, val]) => ['支払手形', '買掛金', '借入金', '未払金', '前受金', '預り金', '貸倒引当金'].includes(key) && val !== 0)
-                      .map(([key, val]) => (
+                    {bsLiabilityItems.map(({ key, val }) => (
                       <tr key={key}>
                         <td className="py-2 px-4 text-gray-600">{key}</td>
                         <td className="py-2 px-4 text-right">{renderAmount(val)} 円</td>
@@ -510,7 +520,6 @@ export const ReportsScreen = () => {
         </div>
       )}
 
-      {/* 仕訳帳タブ */}
       {reportTab === 'journal' && (
         <div className="bg-white shadow sm:rounded-lg overflow-hidden animate-fade-in">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -549,7 +558,6 @@ export const ReportsScreen = () => {
         </div>
       )}
 
-      {/* 総勘定元帳タブ */}
       {reportTab === 'ledger' && (
         <div className="bg-white shadow sm:rounded-lg overflow-hidden animate-fade-in">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">

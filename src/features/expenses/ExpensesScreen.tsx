@@ -173,13 +173,24 @@ export const ExpensesScreen: React.FC = () => {
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
 
+  // 入力欄を一時的に空欄にできるようにするための表示用ステート
+  const [rateInput, setRateInput] = useState<string>('100');
+
+  useEffect(() => {
+    if (currentYearData) {
+      // || を ?? に変更し、0%の時に100%にリセットされる不具合を修正
+      const initialRate = currentYearData.apportionRate ?? 1;
+      setRateInput(Math.round(initialRate * 100).toString());
+    }
+  }, [currentYearData?.apportionRate]);
+
   if (!currentYearData && !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
 
   const expenses = currentYearData?.expenses || [];
   const columns = currentYearData?.expenseColumns || DEFAULT_EXPENSE_COLUMNS;
-  const rate = currentYearData?.apportionRate || 1;
+  const rate = currentYearData?.apportionRate ?? 1; // || 1 を ?? 1 に修正
 
   const handleUpdateColumn = (colIndex: number, field: keyof ExpenseColumn, value: string | boolean) => {
     if (!appData) return;
@@ -294,12 +305,18 @@ export const ExpensesScreen: React.FC = () => {
     });
   };
 
-  const handleRateChange = (newRatePercent: number) => {
+  const handleRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setRateInput(val); // 画面上は空欄を含めて入力値をそのまま反映
+
     if (!appData) return;
     const yearData = appData.years[currentYear];
     
+    // 空欄の場合は0として扱い、それ以外は数値に変換
+    const numValue = val === '' ? 0 : Number(val);
+
     // 入力値の制限
-    let validRate = newRatePercent;
+    let validRate = numValue;
     if (isNaN(validRate) || validRate < 0) validRate = 0;
     if (validRate > 100) validRate = 100;
 
@@ -313,6 +330,18 @@ export const ExpensesScreen: React.FC = () => {
         },
       },
     });
+  };
+
+  const handleRateBlur = () => {
+    // フォーカスが外れた時に、空欄なら0に補完し、100以上の数値などを整形する
+    if (rateInput === '') {
+      setRateInput('0');
+    } else {
+      let validRate = Number(rateInput);
+      if (isNaN(validRate) || validRate < 0) validRate = 0;
+      if (validRate > 100) validRate = 100;
+      setRateInput(validRate.toString());
+    }
   };
 
   const getAmount = (month: number, label: string) => {
@@ -346,8 +375,9 @@ export const ExpensesScreen: React.FC = () => {
             type="number"
             min="0"
             max="100"
-            value={Math.round(rate * 100)}
-            onChange={(e) => handleRateChange(Number(e.target.value))}
+            value={rateInput}
+            onChange={handleRateChange}
+            onBlur={handleRateBlur}
             className="block w-24 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-lg border p-2 text-right font-bold text-blue-700"
           />
           <span className="text-gray-700 font-medium">%</span>

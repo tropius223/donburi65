@@ -72,9 +72,20 @@ function App() {
       try {
         await saveAppData(appData);
         setSaveStatus('saved');
-      } catch (error) {
+      } catch (error: any) {
         console.error('自動保存に失敗しました:', error);
         setSaveStatus('error');
+        
+        // エラー内容から認証切れ(401やUNAUTHENTICATED)を検知する
+        const errorString = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+        const isAuthError = errorString.includes('401') || 
+                            errorString.includes('UNAUTHENTICATED') || 
+                            errorString.includes('Invalid Credentials');
+
+        if (isAuthError) {
+          alert('ログインの有効期限が切れています。安全のため自動的にログアウトします。お手数ですが再度ログインしてください。');
+          handleLogout(); // 強制ログアウト処理を呼び出す
+        }
       }
     }, 3000);
 
@@ -90,13 +101,13 @@ function App() {
   }
 
   const tabs = [
+    { id: 'settings', label: '開始仕訳' },
     { id: 'sales', label: '売上' },
     { id: 'expenses', label: '費用' },
     { id: 'purchases', label: '仕入' },
     { id: 'inventory', label: '棚卸' },
     { id: 'reports', label: '帳票' },
     { id: 'blue-return', label: '青色申告' },
-    { id: 'settings', label: '開始仕訳' },
   ];
 
   const renderSaveStatus = () => {
