@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>操作マニュアル - どんぶり帳簿</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .step-number {
+            background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 leading-relaxed text-sm md:text-base">
+
+    <!-- ヘッダー -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl font-black text-orange-600">どんぶり帳簿</span>
+                    <span class="text-slate-400">|</span>
+                    <span class="font-bold text-slate-700">操作マニュアル</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
+        <!-- システムの基本概念 -->
+        <section class="mb-16">
+            <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                    システムの基本概念
+                </h2>
+                <div class="bg-orange-50 border-l-4 border-orange-400 p-6 rounded-r-xl">
+                    <p class="text-slate-700 leading-loose">
+                        本システムは、現預金、買掛金、未払金の厳密な残高管理を省き、資金の出入りをすべて「事業主勘定」に集約する独自のロジックを採用しています。これにより、銀行口座等との面倒な残高突合を行うことなく、確定申告に必要な帳簿を作成できます。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 各セクション -->
+        <div class="space-y-12">
+            
+            <!-- 1. 初期設定 -->
+            <section id="settings">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="step-number text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
+                    <h2 class="text-2xl font-black">初期設定（設定タブ）</h2>
+                </div>
+                <p class="text-slate-600 mb-6 px-2">使い始める前、または新年度の開始時に確認・設定を行う画面です。</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-lg mb-3 text-orange-700">開始仕訳（期首残高）の入力</h3>
+                        <p class="text-slate-600">前年末の決算書に基づき、期首の残高を入力します。事業開始時に引き継ぐ資産がある場合もここに入力します。システムの性質上、売掛金、事業主貸、元入金、青色申告特別控除前の所得金額以外の科目（現預金など）への入力は推奨していません。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-lg mb-3 text-orange-700">前年売掛金の回収入力</h3>
+                        <p class="text-slate-600">前年に発生し、本年に入金された売掛金がある場合に入力します。前年データから自動連携されている場合は入力不要です。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-lg mb-3 text-orange-700">貸借バランスの確認</h3>
+                        <p class="text-slate-600">画面下部で資産合計と負債・資本合計が一致しているかを常に確認できます。差額がある場合は赤字で警告表示されます。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm border-dashed">
+                        <h3 class="font-bold text-lg mb-3 text-slate-500">全データの初期化</h3>
+                        <p class="text-slate-600">データの不整合をリセットしたい場合などに、すべての入力データを消去して真っ新な状態に戻します。実行の際は十分にご注意ください。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 日々の記帳 -->
+            <section id="daily">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="step-number text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-lg shrink-0">2</div>
+                    <h2 class="text-2xl font-black">日々の記帳（売上・仕入・費用タブ）</h2>
+                </div>
+                <p class="text-slate-600 mb-6 px-2">日々の取引は目的別に3つのタブに分けて入力します。</p>
+                
+                <div class="space-y-4">
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex flex-col md:flex-row gap-8">
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2 text-slate-800">
+                                    売上帳
+                                </h3>
+                                <p class="text-slate-600 mb-4">売上日と入金日を分けて入力します。まだ入金されていない場合は「未定」を選択します。</p>
+                                <p class="text-xs bg-slate-100 p-2 rounded text-slate-500">売上先は一度手入力すると、次回以降はプルダウンから選択可能になります。</p>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2 text-slate-800">
+                                    仕入帳
+                                </h3>
+                                <p class="text-slate-600 mb-4">商品の仕入を入力します。勘定科目は裏側で自動的に「仕入高」として処理されるため、科目の選択作業は不要です。</p>
+                                <p class="text-xs bg-slate-100 p-2 rounded text-slate-500">仕入先もプルダウンでの自動選択に対応しています。</p>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-8 border-t border-slate-100">
+                            <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-slate-800">
+                                費用帳
+                            </h3>
+                            <p class="text-slate-600 mb-6">毎月の経費を入力するマトリクス表です。列ごとに任意の名称（例：スマホ代）を設定し、正規の勘定科目（例：通信費）を紐づけます。列の追加・削除も自由に行えます。</p>
+                            <div class="bg-orange-50 rounded-xl p-6 border border-orange-100">
+                                <h4 class="font-bold text-orange-800 mb-2">経費の事業用按分について</h4>
+                                <p class="text-slate-700">費用帳の各列で「按分：有」に設定すると、画面上部で入力した「事業用按分比率」が自動的に掛け合わされます。プライベート分を差し引いた金額のみが経費として計上される仕組みです。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 期末の処理 -->
+            <section id="year-end">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="step-number text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-lg shrink-0">3</div>
+                    <h2 class="text-2xl font-black">期末の処理</h2>
+                </div>
+                <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-6">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold mb-3 text-slate-800">棚卸</h3>
+                        <p class="text-slate-600">本システムでは日々の入出庫管理を行いません。12月31日時点での実地棚卸（期末在庫の金額）を計上することで、売上原価が自動計算されます。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. 確定申告と帳票の出力 -->
+            <section id="output">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="step-number text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-lg shrink-0">4</div>
+                    <h2 class="text-2xl font-black text-slate-800">有料機能（青色申告・帳票タブ）</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm h-full relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-orange-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">PAID</div>
+                        <h3 class="text-xl font-bold mb-4 text-slate-800">青色申告</h3>
+                        <p class="text-slate-600 mb-4">入力されたデータに基づき、青色申告決算書に必要な売上、経費の集計、貸借対照表の数値を自動算出します。</p>
+                        <p class="text-xs text-orange-600 font-bold">※具体的な数値を閲覧し、e-Tax等へ転記するには有料購読が必要です。</p>
+                    </div>
+                    <div class="bg-slate-900 text-white p-8 rounded-2xl shadow-xl h-full flex flex-col justify-between relative overflow-hidden border border-slate-700">
+                        <div class="relative z-10">
+                            <div class="absolute -top-4 -right-4 bg-orange-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">PAID</div>
+                            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                                帳票の閲覧・出力
+                            </h3>
+                            <p class="text-slate-400 mb-4">損益計算書、貸借対照表、仕訳帳、総勘定元帳を閲覧・出力できます。</p>
+                            <p class="text-sm text-slate-300">
+                                <strong>青色申告データおよび各帳票</strong>の具体的な数値を表示するには、年間2,000円（予定）の有料購読が必要です。未課金状態ではフォーマットのみが確認できます。
+                            </p>
+                        </div>
+                        <!-- 装飾用のアイコン -->
+                        <div class="absolute -right-4 -bottom-4 opacity-10">
+                            <svg width="120" height="120" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+     <div class="mt-8 text-center">
+            <a href="/" class="inline-flex items-center text-gray-600 hover:text-gray-900 transition font-medium px-6 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                アプリへ戻る
+            </a>
+        </div>
+
+    <footer class="bg-slate-900 text-slate-500 py-12 mt-12 border-t border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs">
+            <p class="mb-2">どんぶり帳簿 オフィシャルマニュアル</p>
+            <p>&copy; 2026 どんぶり帳簿 All rights reserved. 記載の価格は予告なく変更される場合があります。</p>
+        </div>
+    </footer>
+</body>
+</html>

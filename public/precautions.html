@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ご利用前の注意事項 - どんぶり帳簿</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 leading-relaxed">
+
+    <!-- ナビゲーション（簡易版） -->
+    <nav class="w-full bg-white border-b border-gray-200">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center">
+                <a href="landing_page.html" class="text-xl font-black text-orange-600 tracking-tight">どんぶり帳簿</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 注意事項コンテンツ -->
+    <main class="py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+        <div class="bg-white p-8 sm:p-12 rounded-3xl border border-gray-200 shadow-sm relative overflow-hidden">
+            <!-- 上部の装飾 -->
+            <div class="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
+            
+            <h1 class="text-3xl font-bold mb-4 text-center">ご利用前の注意事項</h1>
+            <p class="text-center text-gray-600 mb-10">
+                どんぶり帳簿を安全にご利用いただくため、<br class="hidden sm:block">
+                必ず以下の3つのポイントをご確認ください。
+            </p>
+            
+            <div class="space-y-8">
+                <!-- ポイント1 -->
+                <div class="bg-orange-50 p-6 sm:p-8 rounded-2xl border border-orange-100">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-lg mr-4 shrink-0">1</div>
+                        <h2 class="text-xl font-bold text-gray-900">特殊な記帳方式と「自己責任」について</h2>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed pl-14">
+                        当システムは「現預金を管理せず、すべて事業主貸で処理する」という記帳方式を採用しています。小規模な副業などであれば、この方法でも実務上問題視されないケースは多くあります。しかし、当システムが「本来必要な現預金の管理を怠ってよい」と許可を与えるものではありません。<br><br>
+                        ご自身の事業形態（在庫の有無、掛取引の多さ、事業規模など）において、「この簡易的な記帳方式で税務上許容される範囲内か」を判断するのは利用者ご自身です。万が一、税務署からの指導や青色申告の承認取消し等の不利益が生じたとしても、運営側では一切の責任を負いかねます。仕組みをご理解いただいた上で、ご自身の判断と自己責任にてご利用ください。
+                    </p>
+                </div>
+
+                <!-- ポイント2 -->
+                <div class="bg-gray-50 p-6 sm:p-8 rounded-2xl border border-gray-200">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gray-400 text-white rounded-full flex items-center justify-center font-bold text-lg mr-4 shrink-0">2</div>
+                        <h2 class="text-xl font-bold text-gray-900">データの保存先と紛失について</h2>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed pl-14">
+                        入力した帳簿データは、お客様ご自身の「Googleアカウント（Googleドライブ）」内に保存されます。
+                        当システム側でお客様のデータをお預かりしたり、バックアップを取ったりすることは仕組み上できません。
+                        誤ってファイルを削除してしまった場合の復旧などはできかねますので、データの管理には十分ご注意ください。
+                    </p>
+                </div>
+
+                <!-- ポイント3 -->
+                <div class="bg-gray-50 p-6 sm:p-8 rounded-2xl border border-gray-200">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gray-400 text-white rounded-full flex items-center justify-center font-bold text-lg mr-4 shrink-0">3</div>
+                        <h2 class="text-xl font-bold text-gray-900">プロトタイプ版（試験公開）のご案内</h2>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed pl-14">
+                        現在公開しているのは、皆様からのフィードバックを集めるための「プロトタイプ版」です。
+                        そのため、予告なく仕様を変更したり、システムを停止したりする可能性があります。
+                        また、来年以降はより使いやすくブラッシュアップした正式版として「有料化」する予定です。あらかじめご了承ください。
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-10 p-6 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-600">
+                <p class="mb-2 font-bold text-gray-700">税務相談について</p>
+                <p>「この経費は落とせますか？」「申告書の書き方を教えてください」といった、個別の税務に関するご相談には、法律（税理士法）の規定により一切お答えすることができません。税務署または税理士等の専門家へご相談ください。</p>
+            </div>
+
+            <div class="mt-8 text-center text-sm">
+                <a href="terms.html" class="text-orange-600 hover:text-orange-800 underline">詳しい利用規約の全文はこちら</a>
+            </div>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <a href="/" class="inline-flex items-center text-gray-600 hover:text-gray-900 transition font-medium px-6 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                トップページへ戻る
+            </a>
+        </div>
+    </main>
+
+    <footer class="bg-gray-900 py-8 text-gray-400 mt-12">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs">
+            &copy; 2026 どんぶり帳簿 All rights reserved.
+        </div>
+    </footer>
+
+</body>
+</html>

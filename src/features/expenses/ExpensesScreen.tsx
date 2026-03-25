@@ -89,11 +89,12 @@ const ColumnHeader = ({
 // 各セルの表示/編集を管理するコンポーネント
 const ExpenseCell: React.FC<{
   month: number;
+  colIndex: number;
   col: ExpenseColumn;
   amount: number | '';
   apportionRate: number;
   onAmountChange: (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, value: string) => void;
-}> = ({ month, col, amount, apportionRate, onAmountChange }) => {
+}> = ({ month, colIndex, col, amount, apportionRate, onAmountChange }) => {
   const [display, setDisplay] = useState('');
 
   useEffect(() => {
@@ -107,7 +108,6 @@ const ExpenseCell: React.FC<{
 
   const handleFocus = () => {
     if (!display) return;
-    // フォーカス時はカッコを外し、数値のみ（カンマあり）にする
     const raw = display.replace(/[^0-9]/g, '');
     if (raw) {
       setDisplay(parseInt(raw, 10).toLocaleString());
@@ -126,18 +126,29 @@ const ExpenseCell: React.FC<{
       const str = num.toLocaleString();
       setDisplay(col.isApportioned ? `[${str}]` : str);
     }
-    // フォーカスが外れたタイミングで、初めて親(Store)を更新する
     onAmountChange(month, col.label, col.category, col.isApportioned, num.toString());
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 入力中は親(Store)を更新せず、表示用のローカルステートのみを更新する
     const raw = e.target.value.replace(/[^0-9]/g, '');
     if (!raw) {
       setDisplay('');
     } else {
       const num = parseInt(raw, 10);
       setDisplay(num.toLocaleString());
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextMonth = month + 1;
+      if (nextMonth <= 12) {
+        const nextInput = document.getElementById(`expense-input-${colIndex}-${nextMonth}`);
+        if (nextInput) {
+          nextInput.focus();
+        }
+      }
     }
   };
 
@@ -148,6 +159,7 @@ const ExpenseCell: React.FC<{
     <td className={`border-b border-r ${cellBorder} p-0`}>
       <div className="relative group">
         <input
+          id={`expense-input-${colIndex}-${month}`}
           type="text"
           inputMode="numeric"
           className="w-full border-0 bg-transparent py-3 px-2 text-right text-sm focus:ring-2 focus:ring-inset focus:ring-blue-500"
@@ -155,6 +167,7 @@ const ExpenseCell: React.FC<{
           onFocus={handleFocus}
           onBlur={handleBlur}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           placeholder="0"
         />
         {col.isApportioned && amount !== '' && amount !== 0 && (
@@ -173,12 +186,10 @@ export const ExpensesScreen: React.FC = () => {
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
 
-  // 入力欄を一時的に空欄にできるようにするための表示用ステート
   const [rateInput, setRateInput] = useState<string>('100');
 
   useEffect(() => {
     if (currentYearData) {
-      // || を ?? に変更し、0%の時に100%にリセットされる不具合を修正
       const initialRate = currentYearData.apportionRate ?? 1;
       setRateInput(Math.round(initialRate * 100).toString());
     }
@@ -190,7 +201,7 @@ export const ExpensesScreen: React.FC = () => {
 
   const expenses = currentYearData?.expenses || [];
   const columns = currentYearData?.expenseColumns || DEFAULT_EXPENSE_COLUMNS;
-  const rate = currentYearData?.apportionRate ?? 1; // || 1 を ?? 1 に修正
+  const rate = currentYearData?.apportionRate ?? 1;
 
   const handleUpdateColumn = (colIndex: number, field: keyof ExpenseColumn, value: string | boolean) => {
     if (!appData) return;
@@ -202,7 +213,6 @@ export const ExpensesScreen: React.FC = () => {
 
     let newExpenses = [...expenses];
 
-    // 列名や勘定科目が変更された場合、紐づく費用データのcolLabel/categoryも更新する
     if (field === 'label' && oldLabel !== value) {
       newExpenses = newExpenses.map(e => e.colLabel === oldLabel ? { ...e, colLabel: value as string } : e);
     }
@@ -307,15 +317,13 @@ export const ExpensesScreen: React.FC = () => {
 
   const handleRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setRateInput(val); // 画面上は空欄を含めて入力値をそのまま反映
+    setRateInput(val);
 
     if (!appData) return;
     const yearData = appData.years[currentYear];
     
-    // 空欄の場合は0として扱い、それ以外は数値に変換
     const numValue = val === '' ? 0 : Number(val);
 
-    // 入力値の制限
     let validRate = numValue;
     if (isNaN(validRate) || validRate < 0) validRate = 0;
     if (validRate > 100) validRate = 100;
@@ -333,7 +341,6 @@ export const ExpensesScreen: React.FC = () => {
   };
 
   const handleRateBlur = () => {
-    // フォーカスが外れた時に、空欄なら0に補完し、100以上の数値などを整形する
     if (rateInput === '') {
       setRateInput('0');
     } else {
@@ -438,6 +445,7 @@ export const ExpensesScreen: React.FC = () => {
                     <ExpenseCell
                       key={idx}
                       month={month}
+                      colIndex={idx}
                       col={col}
                       amount={getAmount(month, col.label)}
                       apportionRate={rate}

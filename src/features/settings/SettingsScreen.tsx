@@ -174,6 +174,16 @@ export const SettingsScreen: React.FC = () => {
   const totalLiabilitiesAndCapital = [...LIABILITY_ACCOUNTS, ...CAPITAL_ACCOUNTS].reduce((sum, account) => sum + (openingBalances[account] || 0), 0);
   const isBalanceMatch = totalAssets === totalLiabilitiesAndCapital;
 
+  // データ容量の計算
+  const dataSize = appData ? new Blob([JSON.stringify(appData)]).size : 0;
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <div className="space-y-8">
       
@@ -268,7 +278,7 @@ export const SettingsScreen: React.FC = () => {
               </div>
 
               <div className="bg-blue-50 border border-blue-100 p-4 rounded text-sm text-blue-800 leading-relaxed shadow-sm">
-                どんぶり帳簿のロジックにより、資金の出入りは<strong>事業主勘定</strong>に集約されます。<br/>
+                どんぶり帳簿のロジックにより、資金の出入りは事業主勘定に集約されます。<br/>
                 そのため、売掛金、事業主貸、元入金 以外の科目（現預金や未払金など）に数値を入力して残高管理を行うことは推奨していません。
               </div>
             </div>
@@ -315,12 +325,17 @@ export const SettingsScreen: React.FC = () => {
         <p className="text-sm text-gray-500 mb-6">
           入力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。旧データの不整合をリセットしたい場合に使用してください。
         </p>
-        <button
-          onClick={handleResetData}
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
-        >
-          全データを初期化する
-        </button>
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+          <button
+            onClick={handleResetData}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
+          >
+            全データを初期化する
+          </button>
+          <span className="text-sm text-gray-500 font-medium">
+            現在のデータ容量: {formatBytes(dataSize)}
+          </span>
+        </div>
       </div>
 
     </div>
