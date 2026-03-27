@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { OpeningBalances, AppData } from '../../types';
+import { calculateSummary } from '../../utils/accounting';
 
 const ASSET_ACCOUNTS = [
   '売掛金', '事業主貸', '現金', '当座預金', '定期預金', 'その他の預金', '受取手形', '有価証券',
@@ -25,7 +26,6 @@ export const SettingsScreen: React.FC = () => {
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
 
-  // フック（useState, useEffect）は必ず早期リターンの前に配置する
   const [openingBalances, setOpeningBalances] = useState<OpeningBalances>(
     currentYearData?.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 }
   );
@@ -34,28 +34,95 @@ export const SettingsScreen: React.FC = () => {
   const [newRecDate, setNewRecDate] = useState('');
   const [newRecAmount, setNewRecAmount] = useState<number | ''>('');
 
+  const prevYear = (parseInt(currentYear) - 1).toString();
+  const hasPreviousYearData = !!appData?.years[prevYear];
+
+  // 自動繰越を1度だけ実行するためのフラグ
+  const hasAutoCarriedOver = useRef(false);
+
+  // 年度変更時にフラグをリセット
   useEffect(() => {
-    if (currentYearData) {
-      const balances = currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
-      setOpeningBalances(balances);
+    hasAutoCarriedOver.current = false;
+  }, [currentYear]);
 
-      const initialInputs: Record<string, string> = {};
-      Object.keys(balances).forEach(key => {
-        initialInputs[key] = balances[key] === 0 ? '' : balances[key].toString();
-      });
-      setInputValues(initialInputs);
+  // 前年データからの自動計算・適用ロジック
+  const performAutoCarryOver = (prevYearData: any, isInitial: boolean) => {
+    if (!appData) return;
+    const prevBal = prevYearData.openingBalances || {};
+    const prevSummary = calculateSummary(prevYearData);
 
-      setPrevReceivables((currentYearData as any).previousReceivables || []);
+    const uncollectedSales = prevYearData.sales.filter((s: any) => s.depositDate === '').reduce((sum: number, s: any) => sum + s.amount, 0);
+    const collectedSales = prevYearData.sales.filter((s: any) => s.depositDate !== '').reduce((sum: number, s: any) => sum + s.amount, 0);
+    const prevRecTotal = ((prevYearData as any).previousReceivables || []).reduce((sum: number, r: any) => sum + r.amount, 0);
+
+    const closingAccountsReceivable = (prevBal['売掛金'] || 0) - prevRecTotal + uncollectedSales;
+
+    const jigyoDr = collectedSales + prevRecTotal;
+    const jigyoCr = prevSummary.totalPurchases + prevSummary.totalExpenses;
+    const jigyoBalance = jigyoDr - jigyoCr;
+    const closingJigyoKashi = jigyoBalance > 0 ? jigyoBalance : 0;
+    const closingJigyoKari = jigyoBalance < 0 ? Math.abs(jigyoBalance) : 0;
+
+    const openingMotouire = (prevBal['元入金'] || 0) + (prevBal['青色申告特別控除前の所得金額'] || 0) + (prevBal['事業主借'] || 0) - (prevBal['事業主貸'] || 0);
+    const nextMotouire = openingMotouire + prevSummary.income + closingJigyoKari - closingJigyoKashi;
+
+    const autoBalances: OpeningBalances = { ...prevBal };
+    autoBalances['売掛金'] = closingAccountsReceivable;
+    autoBalances['商品'] = prevSummary.closingInventory;
+    autoBalances['元入金'] = nextMotouire;
+    
+    // 翌期首は0リセットする科目
+    autoBalances['青色申告特別控除前の所得金額'] = 0;
+    autoBalances['事業主貸'] = 0;
+    autoBalances['事業主借'] = 0;
+
+    const yearData = appData.years[currentYear];
+    
+    // Zustandの更新（更新により再度useEffectが発火するが、isInitialStateがfalseになるため安全）
+    setAppData({
+      ...appData,
+      years: {
+        ...appData.years,
+        [currentYear]: {
+          ...yearData,
+          openingBalances: autoBalances,
+          // 初期状態の自動繰越時のみ回収予定リストを空にする
+          ...(isInitial ? { previousReceivables: [] } : {}),
+        } as any,
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (!currentYearData || !appData) return;
+
+    const balances = currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
+    const prevYearData = appData.years[prevYear];
+    
+    // 本年の残高がすべて0（初期状態）かどうかの判定
+    const isInitialState = Object.values(balances).every(val => val === 0);
+
+    // 未繰越 かつ 初期状態 かつ 前年データが存在する場合のみ自動繰越を実行
+    if (!hasAutoCarriedOver.current && isInitialState && prevYearData) {
+      hasAutoCarriedOver.current = true;
+      performAutoCarryOver(prevYearData, true);
+      return; // performAutoCarryOver内のsetAppDataにより再レンダリングされるためここで終了
     }
+
+    // 通常のローカルステートへの同期処理
+    setOpeningBalances(balances);
+    const initialInputs: Record<string, string> = {};
+    Object.keys(balances).forEach(key => {
+      initialInputs[key] = balances[key] === 0 ? '' : balances[key].toString();
+    });
+    setInputValues(initialInputs);
+    setPrevReceivables((currentYearData as any).previousReceivables || []);
+
   }, [currentYearData]);
 
-  // すべてのフックを呼び出した後に早期リターンを実行する
   if (!currentYearData || !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
-
-  const prevYear = (parseInt(currentYear) - 1).toString();
-  const hasPreviousYearData = !!appData.years[prevYear];
 
   const saveSettings = (balances: OpeningBalances, receivables: PrevReceivable[] = prevReceivables) => {
     if (!appData) return;
@@ -102,6 +169,14 @@ export const SettingsScreen: React.FC = () => {
   const handleRecKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleAddPrevReceivable();
+    }
+  };
+
+  const handleManualCarryOver = () => {
+    const prevYearData = appData.years[prevYear];
+    if (!prevYearData) return;
+    if (window.confirm('前年の期末残高を再計算して、現在の入力値を上書きしますか？\n（本年の固定資産などは前年と同じ値がセットされ、売掛金や商品、元入金などは自動計算されます）')) {
+      performAutoCarryOver(prevYearData, false);
     }
   };
 
@@ -186,7 +261,17 @@ export const SettingsScreen: React.FC = () => {
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
             
             <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4 border-b pb-2">資産の部</h4>
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h4 className="text-md font-medium text-gray-900">資産の部</h4>
+                {hasPreviousYearData && (
+                  <button
+                    onClick={handleManualCarryOver}
+                    className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-200 transition-colors"
+                  >
+                    前年から再計算
+                  </button>
+                )}
+              </div>
               <div className="space-y-1">
                 {ASSET_ACCOUNTS.map(renderAccountInput)}
               </div>
@@ -262,7 +347,7 @@ export const SettingsScreen: React.FC = () => {
               </div>
 
               <div className="bg-blue-50 border border-blue-100 p-4 rounded text-sm text-blue-800 leading-relaxed shadow-sm">
-                どんぶり帳簿のロジックにより、資金の出入りは事業主勘定に集約されます。<br/>
+                どんぶり帳簿のロジックにより、資金の出入りは<strong>事業主勘定</strong>に集約されます。<br/>
                 そのため、売掛金、事業主貸、元入金 以外の科目（現預金や未払金など）に数値を入力して残高管理を行うことは推奨していません。
               </div>
             </div>
