@@ -25,29 +25,17 @@ export const SettingsScreen: React.FC = () => {
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
 
-  if (!currentYearData || !appData) {
-    return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
-  }
-
-  // 期首残高のステート
+  // フック（useState, useEffect）は必ず早期リターンの前に配置する
   const [openingBalances, setOpeningBalances] = useState<OpeningBalances>(
-    currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 }
+    currentYearData?.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 }
   );
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
-
-  // 前年売掛金の回収入力用ステート
   const [prevReceivables, setPrevReceivables] = useState<PrevReceivable[]>([]);
   const [newRecDate, setNewRecDate] = useState('');
   const [newRecAmount, setNewRecAmount] = useState<number | ''>('');
 
-  // 前年データが存在するか判定（どんぶり帳簿で前年分をつけているか）
-  const prevYear = (parseInt(currentYear) - 1).toString();
-  const hasPreviousYearData = !!appData.years[prevYear];
-
-  // データ同期
   useEffect(() => {
     if (currentYearData) {
-      
       const balances = currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
       setOpeningBalances(balances);
 
@@ -57,12 +45,18 @@ export const SettingsScreen: React.FC = () => {
       });
       setInputValues(initialInputs);
 
-      // 前年売掛金の読み込み
       setPrevReceivables((currentYearData as any).previousReceivables || []);
     }
   }, [currentYearData]);
 
-  // 設定の保存処理
+  // すべてのフックを呼び出した後に早期リターンを実行する
+  if (!currentYearData || !appData) {
+    return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
+  }
+
+  const prevYear = (parseInt(currentYear) - 1).toString();
+  const hasPreviousYearData = !!appData.years[prevYear];
+
   const saveSettings = (balances: OpeningBalances, receivables: PrevReceivable[] = prevReceivables) => {
     if (!appData) return;
     const yearData = appData.years[currentYear];
@@ -73,7 +67,6 @@ export const SettingsScreen: React.FC = () => {
         [currentYear]: {
           ...yearData,
           openingBalances: balances,
-          // 型定義拡張を避けるため any として保存
           previousReceivables: receivables,
         } as any,
       },
@@ -91,7 +84,6 @@ export const SettingsScreen: React.FC = () => {
     saveSettings(newBalances, prevReceivables);
   };
 
-  // 前年売掛金の追加処理
   const handleAddPrevReceivable = () => {
     if (!newRecDate || newRecAmount === '') return;
     const newItems = [...prevReceivables, { id: crypto.randomUUID(), date: newRecDate, amount: Number(newRecAmount) }];
@@ -163,18 +155,14 @@ export const SettingsScreen: React.FC = () => {
     );
   };
 
-  // 売掛金の一致確認
   const prevReceivablesTotal = prevReceivables.reduce((sum, r) => sum + r.amount, 0);
   const openingAccountsReceivable = openingBalances['売掛金'] || 0;
-  // 過去の帳簿データがない場合のみ、金額の不一致をチェックする
   const isReceivablesMismatch = !hasPreviousYearData && prevReceivablesTotal !== openingAccountsReceivable;
 
-  // 貸借バランスの確認計算
   const totalAssets = ASSET_ACCOUNTS.reduce((sum, account) => sum + (openingBalances[account] || 0), 0);
   const totalLiabilitiesAndCapital = [...LIABILITY_ACCOUNTS, ...CAPITAL_ACCOUNTS].reduce((sum, account) => sum + (openingBalances[account] || 0), 0);
   const isBalanceMatch = totalAssets === totalLiabilitiesAndCapital;
 
-  // データ容量の計算
   const dataSize = appData ? new Blob([JSON.stringify(appData)]).size : 0;
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -187,7 +175,6 @@ export const SettingsScreen: React.FC = () => {
   return (
     <div className="space-y-8">
       
-      {/* 開始仕訳の設定 */}
       <div className="bg-white shadow sm:rounded-lg overflow-hidden">
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
           <h3 className="text-lg leading-6 font-medium text-gray-900">開始仕訳（期首残高）</h3>
@@ -198,7 +185,6 @@ export const SettingsScreen: React.FC = () => {
         <div className="px-4 py-5 sm:p-6">
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
             
-            {/* 左カラム：資産の部 */}
             <div>
               <h4 className="text-md font-medium text-gray-900 mb-4 border-b pb-2">資産の部</h4>
               <div className="space-y-1">
@@ -206,10 +192,8 @@ export const SettingsScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* 右カラム：前年売掛金・資本の部・負債の部 */}
             <div className="space-y-10">
               
-              {/* 前年売掛金の回収予定 */}
               <div>
                 <h4 className="text-md font-medium text-gray-900 mb-4 border-b pb-2">前年売掛金のうち、本年入金されたもの</h4>
                 {hasPreviousYearData ? (
@@ -286,7 +270,6 @@ export const SettingsScreen: React.FC = () => {
           </div>
         </div>
         
-        {/* 貸借バランスの確認UI */}
         <div className="px-4 py-4 sm:px-6 border-t border-gray-200 bg-gray-50">
           <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
             <div className="flex space-x-6 mb-2 sm:mb-0">
@@ -323,7 +306,7 @@ export const SettingsScreen: React.FC = () => {
       <div className="bg-white shadow sm:rounded-lg p-6 border-t-4 border-red-500">
         <h3 className="text-lg font-medium text-red-600 border-b pb-4 mb-6">危険な操作</h3>
         <p className="text-sm text-gray-500 mb-6">
-          入力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。昨年以前のデータも全て消去されます。旧データの不整合をリセットしたい場合に使用してください。
+          入力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。旧データの不整合をリセットしたい場合に使用してください。
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
           <button
