@@ -2,12 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { Purchase } from '../../types';
 
-// 既存の仕入明細を編集・表示するための行コンポーネント
 const PurchaseRow = ({ purchase, currentYear, onUpdate, onDelete }: { purchase: Purchase; currentYear: string; onUpdate: (p: Purchase) => void; onDelete: (id: string) => void }) => {
+// ... PurchaseRow の内容は変更なし ...
   const [editData, setEditData] = useState(purchase);
   const [displayAmount, setDisplayAmount] = useState(purchase.amount === 0 ? '' : purchase.amount.toLocaleString());
 
-  // 親の状態が変更されたらローカル状態も同期する
   useEffect(() => {
     setEditData(purchase);
     setDisplayAmount(purchase.amount === 0 ? '' : purchase.amount.toLocaleString());
@@ -18,7 +17,6 @@ const PurchaseRow = ({ purchase, currentYear, onUpdate, onDelete }: { purchase: 
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 数字以外の文字を削除
     const raw = e.target.value.replace(/[^0-9]/g, '');
     if (!raw) {
       setDisplayAmount('');
@@ -31,13 +29,10 @@ const PurchaseRow = ({ purchase, currentYear, onUpdate, onDelete }: { purchase: 
   };
 
   const handleBlur = () => {
-    // 変更があり、かつ必須項目が入力されている場合のみ親を更新
     if (JSON.stringify(editData) !== JSON.stringify(purchase)) {
-      // 仕入日が現在の年度と一致しているかチェック
       if (editData.date && editData.date.startsWith(currentYear) && editData.supplier && editData.amount >= 0) {
         onUpdate(editData);
       } else {
-        // 不正な値の場合は元に戻す
         setEditData(purchase);
         setDisplayAmount(purchase.amount === 0 ? '' : purchase.amount.toLocaleString());
       }
@@ -96,27 +91,25 @@ export const PurchasesScreen: React.FC = () => {
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
 
-  // 新規入力行のステート
   const [newDate, setNewDate] = useState('');
   const [newSupplier, setNewSupplier] = useState('');
   const [newAmount, setNewAmount] = useState<number | ''>('');
   const [newAmountDisplay, setNewAmountDisplay] = useState('');
 
-  // 仕入先の重複なしリストを生成
   const supplierOptions = useMemo(() => {
     if (!currentYearData) return [];
     const suppliers = currentYearData.purchases.map(p => p.supplier).filter(s => s.trim() !== '');
     return Array.from(new Set(suppliers));
   }, [currentYearData]);
 
-  if (!currentYearData && !appData) {
+  // 早期リターンをフックの後に移動
+  if (!currentYearData || !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
 
-  const purchases = currentYearData?.purchases || [];
+  const purchases = currentYearData.purchases || [];
   const totalPurchases = purchases.reduce((sum, p) => sum + p.amount, 0);
 
-  // Zustandのデータを更新するヘルパー
   const updateStorePurchases = (updatedPurchases: Purchase[]) => {
     if (!appData) return;
     const yearData = appData.years[currentYear] || {
@@ -125,7 +118,6 @@ export const PurchasesScreen: React.FC = () => {
       sales: [], expenses: [], purchases: [], inventory: []
     };
     
-    // 日付順にソートして保存
     const sortedPurchases = [...updatedPurchases].sort((a, b) => a.date.localeCompare(b.date));
 
     setAppData({
@@ -174,23 +166,21 @@ export const PurchasesScreen: React.FC = () => {
 
     updateStorePurchases([...purchases, newPurchase]);
 
-    // 入力欄をクリア
     setNewDate('');
     setNewSupplier('');
     setNewAmount('');
     setNewAmountDisplay('');
   };
 
-  // エンターキーで追加を実行
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleAddPurchase();
     }
   };
 
+// ... return部 以降は変更なし ...
   return (
     <div className="space-y-6">
-      {/* datalistを配置 */}
       <datalist id="supplier-list">
         {supplierOptions.map((supplier, idx) => (
           <option key={idx} value={supplier} />
@@ -220,7 +210,6 @@ export const PurchasesScreen: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {/* 新規追加用の空白行 */}
               <tr className="bg-blue-50/50 hover:bg-blue-50 transition-colors border-b-2 border-blue-200">
                 <td className="p-0">
                   <input 
@@ -266,7 +255,6 @@ export const PurchasesScreen: React.FC = () => {
                 </td>
               </tr>
 
-              {/* 既存の明細行 */}
               {purchases.map((purchase) => (
                 <PurchaseRow 
                   key={purchase.id} 
