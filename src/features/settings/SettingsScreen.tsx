@@ -37,17 +37,14 @@ export const SettingsScreen: React.FC = () => {
   const prevYear = (parseInt(currentYear) - 1).toString();
   const hasPreviousYearData = !!appData?.years[prevYear];
 
-  // 自動繰越を1度だけ実行するためのフラグ
   const hasAutoCarriedOver = useRef(false);
 
-  // 年度変更時にフラグをリセット
   useEffect(() => {
     hasAutoCarriedOver.current = false;
   }, [currentYear]);
 
-  // 前年データからの自動計算・適用ロジック
   const performAutoCarryOver = (prevYearData: any, isInitial: boolean) => {
-    if (!appData) return;
+    if (!appData) return null; // 更新後のbalancesを返すように変更
     const prevBal = prevYearData.openingBalances || {};
     const prevSummary = calculateSummary(prevYearData);
 
@@ -71,14 +68,12 @@ export const SettingsScreen: React.FC = () => {
     autoBalances['商品'] = prevSummary.closingInventory;
     autoBalances['元入金'] = nextMotouire;
     
-    // 翌期首は0リセットする科目
     autoBalances['青色申告特別控除前の所得金額'] = 0;
     autoBalances['事業主貸'] = 0;
     autoBalances['事業主借'] = 0;
 
     const yearData = appData.years[currentYear];
     
-    // Zustandの更新（更新により再度useEffectが発火するが、isInitialStateがfalseになるため安全）
     setAppData({
       ...appData,
       years: {
@@ -86,37 +81,40 @@ export const SettingsScreen: React.FC = () => {
         [currentYear]: {
           ...yearData,
           openingBalances: autoBalances,
-          // 初期状態の自動繰越時のみ回収予定リストを空にする
           ...(isInitial ? { previousReceivables: [] } : {}),
         } as any,
       },
     });
+
+    return autoBalances; // 自動計算した結果を呼び出し元に返す
   };
 
   useEffect(() => {
     if (!currentYearData || !appData) return;
 
-    const balances = currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
+    let currentBalances = currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
     const prevYearData = appData.years[prevYear];
     
-    // 本年の残高がすべて0（初期状態）かどうかの判定
-    const isInitialState = Object.values(balances).every(val => val === 0);
+    const isInitialState = Object.values(currentBalances).every(val => val === 0);
 
-    // 未繰越 かつ 初期状態 かつ 前年データが存在する場合のみ自動繰越を実行
     if (!hasAutoCarriedOver.current && isInitialState && prevYearData) {
       hasAutoCarriedOver.current = true;
-      performAutoCarryOver(prevYearData, true);
-      return; // performAutoCarryOver内のsetAppDataにより再レンダリングされるためここで終了
+      const autoCalculatedBalances = performAutoCarryOver(prevYearData, true);
+      // 自動繰越が行われた場合、そのままローカルステートにも反映させる（returnで中断しない）
+      if (autoCalculatedBalances) {
+        currentBalances = autoCalculatedBalances;
+      }
     }
 
-    // 通常のローカルステートへの同期処理
-    setOpeningBalances(balances);
+    setOpeningBalances(currentBalances);
     const initialInputs: Record<string, string> = {};
-    Object.keys(balances).forEach(key => {
-      initialInputs[key] = balances[key] === 0 ? '' : balances[key].toString();
+    Object.keys(currentBalances).forEach(key => {
+      initialInputs[key] = currentBalances[key] === 0 ? '' : currentBalances[key].toString();
     });
     setInputValues(initialInputs);
-    setPrevReceivables((currentYearData as any).previousReceivables || []);
+    // 初期状態で自動繰越が走った直後であれば回収予定リストは空になる
+    const isJustAutoCarried = hasAutoCarriedOver.current && isInitialState && prevYearData;
+    setPrevReceivables(isJustAutoCarried ? [] : ((currentYearData as any).previousReceivables || []));
 
   }, [currentYearData]);
 
@@ -176,7 +174,16 @@ export const SettingsScreen: React.FC = () => {
     const prevYearData = appData.years[prevYear];
     if (!prevYearData) return;
     if (window.confirm('前年の期末残高を再計算して、現在の入力値を上書きしますか？\n（本年の固定資産などは前年と同じ値がセットされ、売掛金や商品、元入金などは自動計算されます）')) {
-      performAutoCarryOver(prevYearData, false);
+      const autoCalculatedBalances = performAutoCarryOver(prevYearData, false);
+      // 手動で再計算した直後も画面に即時反映させる
+      if (autoCalculatedBalances) {
+        setOpeningBalances(autoCalculatedBalances);
+        const initialInputs: Record<string, string> = {};
+        Object.keys(autoCalculatedBalances).forEach(key => {
+          initialInputs[key] = autoCalculatedBalances[key] === 0 ? '' : autoCalculatedBalances[key].toString();
+        });
+        setInputValues(initialInputs);
+      }
     }
   };
 
