@@ -83,7 +83,6 @@ export const SettingsScreen: React.FC = () => {
 
   // 無限ループを回避しつつ、マウント時および年度変更時に1回だけ確実に実行する処理
   useEffect(() => {
-    // 依存配列に appData を入れると無限ループするため、最新状態を getState() で安全に取得
     const currentAppData = useStore.getState().appData;
     if (!currentAppData) return;
 
@@ -108,23 +107,22 @@ export const SettingsScreen: React.FC = () => {
         if (isAllZero) {
           hasAutoRecovered.current = true;
           const calculated = performCarryOverCalc(prevData);
-          if (Object.values(calculated).some(val => val !== 0)) {
-            setOpeningBalances(calculated);
-            const newInputs: Record<string, string> = {};
-            Object.keys(calculated).forEach(k => newInputs[k] = calculated[k] === 0 ? '' : calculated[k].toString());
-            setInputValues(newInputs);
-            
-            setAppData({
-              ...currentAppData,
-              years: {
-                ...currentAppData.years,
-                [currentYear]: {
-                  ...currentData,
-                  openingBalances: calculated
-                }
+          // 結果がオール0であっても、正当な結果として同期させるように修正
+          setOpeningBalances(calculated);
+          const newInputs: Record<string, string> = {};
+          Object.keys(calculated).forEach(k => newInputs[k] = calculated[k] === 0 ? '' : calculated[k].toString());
+          setInputValues(newInputs);
+          
+          setAppData({
+            ...currentAppData,
+            years: {
+              ...currentAppData.years,
+              [currentYear]: {
+                ...currentData,
+                openingBalances: calculated
               }
-            });
-          }
+            }
+          });
         }
       }
     } else {
@@ -160,7 +158,7 @@ export const SettingsScreen: React.FC = () => {
     }
   }, [currentYear]); // 依存配列を currentYear に限定し無限ループを完全に防止
 
-  // 枠がなくても全体データが存在すればローディングを解除して画面を描画する
+  // 全体データが存在しない場合のみローディング（枠がないことによるブロックを解消）
   if (!appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
@@ -221,7 +219,10 @@ export const SettingsScreen: React.FC = () => {
     const prevYearStr = (parseInt(currentYear) - 1).toString();
     const prevData = currentAppData.years[prevYearStr];
 
-    if (!prevData) return;
+    if (!prevData) {
+      alert('前年のデータが存在しません。');
+      return;
+    }
 
     if (window.confirm('前年の期末残高を再計算して、現在の入力値を上書きしますか？\n（本年の固定資産などは前年と同じ値がセットされ、売掛金や商品、元入金などは自動計算されます）')) {
       const calculated = performCarryOverCalc(prevData);
@@ -241,6 +242,14 @@ export const SettingsScreen: React.FC = () => {
           } as any
         }
       });
+
+      // ユーザーに計算結果が0円であることを伝えるアラートを追加
+      const isAllZero = Object.values(calculated).every(val => val === 0);
+      if (isAllZero) {
+        alert('前年のデータから再計算した結果、次年度へ繰り越す残高（未回収の売掛金や在庫、固定資産など）は「0円」でした。\n\n※どんぶり帳簿のロジックでは、入金済みの売上や支払済みの費用はすべて相殺され、期末残高には残りません。これは正常な計算結果です。');
+      } else {
+        alert('前年の期末残高を計算し、正常に反映しました。');
+      }
     }
   };
 
@@ -455,7 +464,7 @@ export const SettingsScreen: React.FC = () => {
       <div className="bg-white shadow sm:rounded-lg p-6 border-t-4 border-red-500">
         <h3 className="text-lg font-medium text-red-600 border-b pb-4 mb-6">危険な操作</h3>
         <p className="text-sm text-gray-500 mb-6">
-          入力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。旧データの不整合をリセットしたい場合に使用してください。
+          入１力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。旧データの不整合をリセットしたい場合に使用してください。
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
           <button
