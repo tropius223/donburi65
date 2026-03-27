@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../hooks/useStore';
-import type { OpeningBalances, AppData } from '../../types';
+import type { OpeningBalances, AppData, YearData } from '../../types';
 import { calculateSummary } from '../../utils/accounting';
 
 const ASSET_ACCOUNTS = [
@@ -21,36 +21,30 @@ const CAPITAL_ACCOUNTS = [
 type PrevReceivable = { id: string; date: string; amount: number };
 
 export const SettingsScreen: React.FC = () => {
-  const currentYearData = useStore((state) => state.getCurrentYearData());
+  // Zustandからの安全なデータ取得
   const appData = useStore((state) => state.appData);
-  const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
+  const setAppData = useStore((state) => state.setAppData);
+  const currentYearData = appData?.years[currentYear];
 
-  const [openingBalances, setOpeningBalances] = useState<OpeningBalances>(
-    currentYearData?.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 }
-  );
+  const prevYear = (parseInt(currentYear) - 1).toString();
+  const prevYearData = appData?.years[prevYear];
+  const hasPreviousYearData = !!prevYearData;
+
+  const [openingBalances, setOpeningBalances] = useState<OpeningBalances>({ 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 });
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [prevReceivables, setPrevReceivables] = useState<PrevReceivable[]>([]);
   const [newRecDate, setNewRecDate] = useState('');
   const [newRecAmount, setNewRecAmount] = useState<number | ''>('');
 
-  const prevYear = (parseInt(currentYear) - 1).toString();
-  const hasPreviousYearData = !!appData?.years[prevYear];
+  // 前年データから期首残高を計算するロジック
+  const performCarryOverCalc = (prevData: YearData) => {
+    const prevBal = prevData.openingBalances || {};
+    const prevSummary = calculateSummary(prevData);
 
-  const hasAutoCarriedOver = useRef(false);
-
-  useEffect(() => {
-    hasAutoCarriedOver.current = false;
-  }, [currentYear]);
-
-  const performAutoCarryOver = (prevYearData: any, isInitial: boolean) => {
-    if (!appData) return null; // 更新後のbalancesを返すように変更
-    const prevBal = prevYearData.openingBalances || {};
-    const prevSummary = calculateSummary(prevYearData);
-
-    const uncollectedSales = prevYearData.sales.filter((s: any) => s.depositDate === '').reduce((sum: number, s: any) => sum + s.amount, 0);
-    const collectedSales = prevYearData.sales.filter((s: any) => s.depositDate !== '').reduce((sum: number, s: any) => sum + s.amount, 0);
-    const prevRecTotal = ((prevYearData as any).previousReceivables || []).reduce((sum: number, r: any) => sum + r.amount, 0);
+    const uncollectedSales = prevData.sales.filter((s: any) => s.depositDate === '').reduce((sum: number, s: any) => sum + s.amount, 0);
+    const collectedSales = prevData.sales.filter((s: any) => s.depositDate !== '').reduce((sum: number, s: any) => sum + s.amount, 0);
+    const prevRecTotal = ((prevData as any).previousReceivables || []).reduce((sum: number, r: any) => sum + r.amount, 0);
 
     const closingAccountsReceivable = (prevBal['売掛金'] || 0) - prevRecTotal + uncollectedSales;
 
@@ -63,74 +57,102 @@ export const SettingsScreen: React.FC = () => {
     const openingMotouire = (prevBal['元入金'] || 0) + (prevBal['青色申告特別控除前の所得金額'] || 0) + (prevBal['事業主借'] || 0) - (prevBal['事業主貸'] || 0);
     const nextMotouire = openingMotouire + prevSummary.income + closingJigyoKari - closingJigyoKashi;
 
-    const autoBalances: OpeningBalances = { ...prevBal };
-    autoBalances['売掛金'] = closingAccountsReceivable;
-    autoBalances['商品'] = prevSummary.closingInventory;
-    autoBalances['元入金'] = nextMotouire;
-    
-    autoBalances['青色申告特別控除前の所得金額'] = 0;
-    autoBalances['事業主貸'] = 0;
-    autoBalances['事業主借'] = 0;
+    const newBalances: OpeningBalances = { ...prevBal };
+    newBalances['売掛金'] = closingAccountsReceivable;
+    newBalances['商品'] = prevSummary.closingInventory;
+    newBalances['元入金'] = nextMotouire;
+    newBalances['青色申告特別控除前の所得金額'] = 0;
+    newBalances['事業主貸'] = 0;
+    newBalances['事業主借'] = 0;
 
-    const yearData = appData.years[currentYear];
+    return newBalances;
+  };
+
+  // 1. 年度切り替え時、その年度のデータ枠が存在しなければ初期作成する
+  useEffect(() => {
+    if (!appData || currentYearData) return;
+
+    let initialBalances = { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
+    if (prevYearData) {
+      initialBalances = performCarryOverCalc(prevYearData);
+    }
     
     setAppData({
       ...appData,
       years: {
         ...appData.years,
         [currentYear]: {
-          ...yearData,
-          openingBalances: autoBalances,
-          ...(isInitial ? { previousReceivables: [] } : {}),
-        } as any,
-      },
+          apportionRate: 1,
+          openingBalances: initialBalances,
+          previousReceivables: [],
+          sales: [],
+          expenses: [],
+          purchases: [],
+          inventory: []
+        }
+      }
     });
+  }, [appData, currentYear, currentYearData, prevYearData, setAppData]);
 
-    return autoBalances; // 自動計算した結果を呼び出し元に返す
-  };
+  // 2. 過去の不具合ですでに「すべて0」の空枠が作られてしまっている場合の自動復旧処理
+  const hasAutoRecovered = useRef(false);
+  useEffect(() => {
+    hasAutoRecovered.current = false;
+  }, [currentYear]);
 
   useEffect(() => {
-    if (!currentYearData || !appData) return;
-
-    let currentBalances = currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
-    const prevYearData = appData.years[prevYear];
+    if (!currentYearData || !appData || !prevYearData || hasAutoRecovered.current) return;
     
-    const isInitialState = Object.values(currentBalances).every(val => val === 0);
+    const balances = currentYearData.openingBalances || {};
+    const isAllZero = ['現金', '売掛金', '商品', '元入金'].every(key => (balances[key] || 0) === 0);
 
-    if (!hasAutoCarriedOver.current && isInitialState && prevYearData) {
-      hasAutoCarriedOver.current = true;
-      const autoCalculatedBalances = performAutoCarryOver(prevYearData, true);
-      // 自動繰越が行われた場合、そのままローカルステートにも反映させる（returnで中断しない）
-      if (autoCalculatedBalances) {
-        currentBalances = autoCalculatedBalances;
+    if (isAllZero) {
+      hasAutoRecovered.current = true;
+      const calculated = performCarryOverCalc(prevYearData);
+      
+      const hasMeaningfulData = Object.values(calculated).some(val => val !== 0);
+      if (hasMeaningfulData) {
+        setAppData({
+          ...appData,
+          years: {
+            ...appData.years,
+            [currentYear]: {
+              ...currentYearData,
+              openingBalances: calculated,
+            }
+          }
+        });
       }
     }
+  }, [currentYearData, appData, prevYearData, currentYear, setAppData]);
 
-    setOpeningBalances(currentBalances);
+  // 3. Zustandのデータが更新されたら、画面表示用（ローカルステート）に即時同期する
+  useEffect(() => {
+    if (!currentYearData) return;
+    const balances = currentYearData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
+    setOpeningBalances(balances);
+    
     const initialInputs: Record<string, string> = {};
-    Object.keys(currentBalances).forEach(key => {
-      initialInputs[key] = currentBalances[key] === 0 ? '' : currentBalances[key].toString();
+    Object.keys(balances).forEach(key => {
+      initialInputs[key] = balances[key] === 0 ? '' : balances[key].toString();
     });
     setInputValues(initialInputs);
-    // 初期状態で自動繰越が走った直後であれば回収予定リストは空になる
-    const isJustAutoCarried = hasAutoCarriedOver.current && isInitialState && prevYearData;
-    setPrevReceivables(isJustAutoCarried ? [] : ((currentYearData as any).previousReceivables || []));
-
+    setPrevReceivables((currentYearData as any).previousReceivables || []);
   }, [currentYearData]);
 
+  // データ枠が作成されるまではローディング表示
   if (!currentYearData || !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
 
   const saveSettings = (balances: OpeningBalances, receivables: PrevReceivable[] = prevReceivables) => {
     if (!appData) return;
-    const yearData = appData.years[currentYear];
     setAppData({
       ...appData,
       years: {
         ...appData.years,
         [currentYear]: {
-          ...yearData,
+          ...currentYearData,
           openingBalances: balances,
           previousReceivables: receivables,
         } as any,
@@ -171,19 +193,19 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const handleManualCarryOver = () => {
-    const prevYearData = appData.years[prevYear];
-    if (!prevYearData) return;
+    if (!prevYearData || !appData) return;
     if (window.confirm('前年の期末残高を再計算して、現在の入力値を上書きしますか？\n（本年の固定資産などは前年と同じ値がセットされ、売掛金や商品、元入金などは自動計算されます）')) {
-      const autoCalculatedBalances = performAutoCarryOver(prevYearData, false);
-      // 手動で再計算した直後も画面に即時反映させる
-      if (autoCalculatedBalances) {
-        setOpeningBalances(autoCalculatedBalances);
-        const initialInputs: Record<string, string> = {};
-        Object.keys(autoCalculatedBalances).forEach(key => {
-          initialInputs[key] = autoCalculatedBalances[key] === 0 ? '' : autoCalculatedBalances[key].toString();
-        });
-        setInputValues(initialInputs);
-      }
+      const calculated = performCarryOverCalc(prevYearData);
+      setAppData({
+        ...appData,
+        years: {
+          ...appData.years,
+          [currentYear]: {
+            ...currentYearData,
+            openingBalances: calculated,
+          }
+        }
+      });
     }
   };
 
