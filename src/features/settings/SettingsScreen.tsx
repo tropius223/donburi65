@@ -323,7 +323,7 @@ export const SettingsScreen: React.FC = () => {
       <div className="bg-white shadow sm:rounded-lg p-6 border-t-4 border-red-500">
         <h3 className="text-lg font-medium text-red-600 border-b pb-4 mb-6">危険な操作</h3>
         <p className="text-sm text-gray-500 mb-6">
-          入力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。旧データの不整合をリセットしたい場合に使用してください。
+          入力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。昨年以前のデータも全て消去されます。旧データの不整合をリセットしたい場合に使用してください。
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
           <button

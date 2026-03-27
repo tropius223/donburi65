@@ -76,7 +76,11 @@ const ColumnHeader = ({
         <select
           value={col.isApportioned ? 'true' : 'false'}
           onChange={(e) => onUpdate('isApportioned', e.target.value === 'true')}
-          className="w-full text-xs text-gray-700 border border-gray-200 rounded px-1 py-1 focus:ring-2 focus:ring-blue-500"
+          className={`w-full text-xs rounded px-1 py-1 focus:ring-2 focus:ring-blue-500 transition-colors ${
+            col.isApportioned 
+              ? 'bg-blue-50 text-blue-700 border border-blue-300 font-medium' 
+              : 'bg-white text-gray-700 border border-gray-200'
+          }`}
         >
           <option value="true">按分: 有</option>
           <option value="false">按分: 無</option>
@@ -140,14 +144,49 @@ const ExpenseCell: React.FC<{
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const nextMonth = month + 1;
-      if (nextMonth <= 12) {
-        const nextInput = document.getElementById(`expense-input-${colIndex}-${nextMonth}`);
-        if (nextInput) {
-          nextInput.focus();
+    const target = e.currentTarget;
+    const selectionStart = target.selectionStart;
+    const selectionEnd = target.selectionEnd;
+    const valueLength = target.value.length;
+
+    let nextCol = colIndex;
+    let nextMonth = month;
+    let shouldMove = false;
+
+    switch (e.key) {
+      case 'Enter':
+      case 'ArrowDown':
+        e.preventDefault();
+        nextMonth = month + 1;
+        shouldMove = true;
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        nextMonth = month - 1;
+        shouldMove = true;
+        break;
+      case 'ArrowLeft':
+        // キャレットが先頭にある場合のみ左へ移動
+        if (selectionStart === 0 && selectionEnd === 0) {
+          e.preventDefault();
+          nextCol = colIndex - 1;
+          shouldMove = true;
         }
+        break;
+      case 'ArrowRight':
+        // キャレットが末尾にある場合のみ右へ移動
+        if (selectionStart === valueLength && selectionEnd === valueLength) {
+          e.preventDefault();
+          nextCol = colIndex + 1;
+          shouldMove = true;
+        }
+        break;
+    }
+
+    if (shouldMove) {
+      const nextInput = document.getElementById(`expense-input-${nextCol}-${nextMonth}`);
+      if (nextInput) {
+        nextInput.focus();
       }
     }
   };

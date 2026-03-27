@@ -90,13 +90,13 @@ function App() {
   }
 
   const tabs = [
+    { id: 'settings', label: '開始仕訳' },
     { id: 'sales', label: '売上' },
     { id: 'expenses', label: '費用' },
     { id: 'purchases', label: '仕入' },
     { id: 'inventory', label: '棚卸' },
-    { id: 'reports', label: '帳票 (有料)' },
+    { id: 'reports', label: '帳票' },
     { id: 'blue-return', label: '青色申告' },
-    { id: 'settings', label: '設定' },
   ];
 
   const renderSaveStatus = () => {
