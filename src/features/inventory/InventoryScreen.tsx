@@ -2,18 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { InventoryItem } from '../../types';
 
-// 既存の棚卸明細を編集・表示するための行コンポーネント
 const InventoryRow = ({ item, onUpdate, onDelete }: { item: InventoryItem; onUpdate: (i: InventoryItem) => void; onDelete: (id: string) => void }) => {
+// ... InventoryRow の内容は変更なし ...
   const [editData, setEditData] = useState(item);
 
-  // 親の状態が変更されたらローカル状態も同期する
   useEffect(() => {
     setEditData(item);
   }, [item]);
 
   const handleChange = (field: keyof InventoryItem, value: string | number) => {
     const newData = { ...editData, [field]: value };
-    // 単価または数量が変更された場合、合計金額を自動再計算する
     if (field === 'unitPrice' || field === 'quantity') {
       const price = field === 'unitPrice' ? (value as number) : newData.unitPrice;
       const qty = field === 'quantity' ? (value as number) : newData.quantity;
@@ -23,12 +21,10 @@ const InventoryRow = ({ item, onUpdate, onDelete }: { item: InventoryItem; onUpd
   };
 
   const handleBlur = () => {
-    // 変更があり、かつ必須項目が入力されている場合のみ親を更新
     if (JSON.stringify(editData) !== JSON.stringify(item)) {
       if (editData.itemName && editData.unitPrice >= 0 && editData.quantity >= 0) {
         onUpdate(editData);
       } else {
-        // 不正な値の場合は元に戻す
         setEditData(item);
       }
     }
@@ -88,19 +84,18 @@ export const InventoryScreen: React.FC = () => {
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
 
-  // 新規入力行のステート
   const [newItemName, setNewItemName] = useState('');
   const [newUnitPrice, setNewUnitPrice] = useState<number | ''>('');
   const [newQuantity, setNewQuantity] = useState<number | ''>('');
 
-  if (!currentYearData && !appData) {
+  // 早期リターンをフックの後に移動
+  if (!currentYearData || !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
 
-  const inventory = currentYearData?.inventory || [];
+  const inventory = currentYearData.inventory || [];
   const totalInventoryAmount = inventory.reduce((sum, item) => sum + item.totalAmount, 0);
 
-  // Zustandのデータを更新するヘルパー
   const updateStoreInventory = (updatedInventory: InventoryItem[]) => {
     if (!appData) return;
     const yearData = appData.years[currentYear] || {
@@ -144,25 +139,22 @@ export const InventoryScreen: React.FC = () => {
 
     updateStoreInventory([newInventoryItem, ...inventory]);
 
-    // 入力欄をクリア
     setNewItemName('');
     setNewUnitPrice('');
     setNewQuantity('');
   };
 
-  // エンターキーで追加を実行
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleAddInventory();
     }
   };
 
-  // 新規行の自動計算合計
   const newTotalAmount = (newUnitPrice || 0) * (newQuantity || 0);
 
+// ... return部 以降は変更なし ...
   return (
     <div className="space-y-6">
-      {/* 注意書きアラート */}
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
         <div className="flex">
           <div className="flex-shrink-0">
@@ -202,7 +194,6 @@ export const InventoryScreen: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {/* 新規追加用の空白行 */}
               <tr className="bg-blue-50/50 hover:bg-blue-50 transition-colors border-b-2 border-blue-200">
                 <td className="p-0">
                   <input 
@@ -250,7 +241,6 @@ export const InventoryScreen: React.FC = () => {
                 </td>
               </tr>
 
-              {/* 既存の明細行 */}
               {inventory.map((item) => (
                 <InventoryRow 
                   key={item.id} 

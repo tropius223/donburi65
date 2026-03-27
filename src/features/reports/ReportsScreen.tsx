@@ -22,7 +22,7 @@ export const ReportsScreen = () => {
     if (force) setIsLoading(true);
 
     try {
-      const response = await fetch('/.netlify/functions/check-subscription', {
+      const response = await fetch('/api/check-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail, forceRefresh: force }),
@@ -52,7 +52,7 @@ export const ReportsScreen = () => {
   const handlePurchase = async () => {
     setIsProcessingPayment(true);
     try {
-      const response = await fetch('/.netlify/functions/create-checkout', {
+      const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail }),
@@ -364,6 +364,7 @@ export const ReportsScreen = () => {
     return { bsAssetItems: assets, bsLiabilityItems: liabilities, bsAssetsTotal: assetsTotal, bsLiabilitiesTotal: liabilitiesTotal };
   }, [currentYearData, ledgerMap, openingMotouire, summary?.income]);
 
+  // ローディング中の早期リターン
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -371,6 +372,11 @@ export const ReportsScreen = () => {
         <span className="ml-3 text-gray-600">最新の購読状態を確認中...</span>
       </div>
     );
+  }
+
+  // currentYearDataが存在しない場合のフォールバック
+  if (!currentYearData) {
+    return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
 
   return (

@@ -20,7 +20,7 @@ export const BlueReturnScreen: React.FC = () => {
     if (force) setIsLoading(true);
 
     try {
-      const response = await fetch('/.netlify/functions/check-subscription', {
+      const response = await fetch('/api/check-subscription', { // APIパスを修正
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail, forceRefresh: force }),
@@ -50,7 +50,7 @@ export const BlueReturnScreen: React.FC = () => {
   const handlePurchase = async () => {
     setIsProcessingPayment(true);
     try {
-      const response = await fetch('/.netlify/functions/create-checkout', {
+      const response = await fetch('/api/create-checkout', { // APIパスを修正
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail }),
@@ -72,11 +72,11 @@ export const BlueReturnScreen: React.FC = () => {
   const monthlyInput = useMemo(() => {
     const data = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, sales: 0, purchases: 0 }));
     if (currentYearData) {
-      currentYearData.sales.forEach(s => {
+      currentYearData.sales.forEach((s: any) => {
         const m = parseInt(s.salesDate.split('-')[1], 10);
         if (m >= 1 && m <= 12) data[m - 1].sales += s.amount;
       });
-      currentYearData.purchases.forEach(p => {
+      currentYearData.purchases.forEach((p: any) => {
         const m = parseInt(p.date.split('-')[1], 10);
         if (m >= 1 && m <= 12) data[m - 1].purchases += p.amount;
       });
@@ -94,7 +94,7 @@ export const BlueReturnScreen: React.FC = () => {
   const salesDetails = useMemo(() => {
     if (!currentYearData) return [];
     const grouped: Record<string, number> = {};
-    currentYearData.sales.forEach(s => {
+    currentYearData.sales.forEach((s: any) => {
       grouped[s.client] = (grouped[s.client] || 0) + s.amount;
     });
     return Object.entries(grouped)
@@ -111,7 +111,7 @@ export const BlueReturnScreen: React.FC = () => {
   const purchasesDetails = useMemo(() => {
     if (!currentYearData) return [];
     const grouped: Record<string, number> = {};
-    currentYearData.purchases.forEach(p => {
+    currentYearData.purchases.forEach((p: any) => {
       grouped[p.supplier] = (grouped[p.supplier] || 0) + p.amount;
     });
     return Object.entries(grouped)
@@ -142,12 +142,12 @@ export const BlueReturnScreen: React.FC = () => {
     const targetLabels = columns.filter((col: any) => col.category === cat).map((col: any) => col.label);
 
     return currentYearData.expenses
-      .filter(e => 
+      .filter((e: any) => 
         e.category === cat || // ①正しく勘定科目が保存されている場合
         targetLabels.includes(e.category) || // ②categoryフィールドに列名が保存されてしまっている場合
         (e.colLabel && targetLabels.includes(e.colLabel)) // ③colLabelから逆引きできる場合
       )
-      .reduce((sum, e) => sum + calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate), 0);
+      .reduce((sum: number, e: any) => sum + calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate), 0);
   };
 
   const expenses = {
@@ -166,8 +166,8 @@ export const BlueReturnScreen: React.FC = () => {
   // 売掛金の期末残高計算
   const prevReceivables = (currentYearData as any)?.previousReceivables || [];
   const prevReceivablesTotal = prevReceivables.reduce((sum: number, r: any) => sum + r.amount, 0);
-  const uncollectedSales = currentYearData?.sales.filter(s => s.depositDate === '').reduce((sum, s) => sum + s.amount, 0) || 0;
-  const collectedSales = currentYearData?.sales.filter(s => s.depositDate !== '').reduce((sum, s) => sum + s.amount, 0) || 0;
+  const uncollectedSales = currentYearData?.sales.filter((s: any) => s.depositDate === '').reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
+  const collectedSales = currentYearData?.sales.filter((s: any) => s.depositDate !== '').reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
   const openingAccountsReceivable = getBal('売掛金');
   const closingAccountsReceivable = openingAccountsReceivable - prevReceivablesTotal + uncollectedSales;
 
@@ -229,6 +229,7 @@ export const BlueReturnScreen: React.FC = () => {
 
   const amountClass = !isSubscribed ? 'blur-amount' : '';
 
+  // 早期リターンを最後に移動
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -236,6 +237,11 @@ export const BlueReturnScreen: React.FC = () => {
         <span className="ml-3 text-gray-600">最新の購読状態を確認中...</span>
       </div>
     );
+  }
+  
+  // currentYearDataがない場合のフォールバック（フックがすべて実行された後）
+  if (!currentYearData) {
+    return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
 
   return (
