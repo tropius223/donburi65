@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@netlify/functions": "^5.1.2",
     "@stripe/stripe-js": "^8.9.0",
     "@upstash/redis": "^1.36.3",
     "react": "^19.2.0",
@@ -34,7 +33,6 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "netlify-cli": "^24.0.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",
