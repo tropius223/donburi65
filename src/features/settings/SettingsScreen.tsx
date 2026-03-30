@@ -35,9 +35,10 @@ export const SettingsScreen: React.FC = () => {
   const [newRecDate, setNewRecDate] = useState('');
   const [newRecAmount, setNewRecAmount] = useState<number | ''>('');
 
-  // 前年データから期首残高を計算するロジック
-  const performCarryOverCalc = (prevData: YearData) => {
-    const prevBal = prevData.openingBalances || {};
+  // 前年データから期首残高を計算するロジック（型を明示）
+  const performCarryOverCalc = (prevData: YearData): OpeningBalances => {
+    // デフォルト値を設定し、必須プロパティの欠損を防ぐ
+    const prevBal = prevData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
     const prevSales = prevData.sales || [];
     const prevPurchases = prevData.purchases || [];
     const prevExpenses = prevData.expenses || [];
@@ -83,7 +84,8 @@ export const SettingsScreen: React.FC = () => {
   // 【追加】対象年度のデータ枠がない場合に自動作成してローディングブロックを解除する処理
   useEffect(() => {
     if (appData && !currentYearData) {
-      let newOpeningBalances = { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
+      // TypeScriptエラーを防ぐため型注釈を明示
+      let newOpeningBalances: OpeningBalances = { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
       const prevYearStr = (parseInt(currentYear) - 1).toString();
       const prevYearData = appData.years[prevYearStr];
       
@@ -371,7 +373,7 @@ export const SettingsScreen: React.FC = () => {
               </div>
 
               <div className="bg-blue-50 border border-blue-100 p-4 rounded text-sm text-blue-800 leading-relaxed shadow-sm">
-                どんぶり帳簿のロジックにより、資金の出入りは事業主勘定に集約されます。<br/>
+                どんぶり帳簿のロジックにより、資金の出入りは<strong>事業主勘定</strong>に集約されます。<br/>
                 そのため、売掛金、事業主貸、元入金 以外の科目（現預金や未払金など）に数値を入力して残高管理を行うことは推奨していません。
               </div>
             </div>
