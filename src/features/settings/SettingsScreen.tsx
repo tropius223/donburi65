@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../hooks/useStore';
-import type { OpeningBalances, AppData, YearData } from '../../types';
+import type { OpeningBalances, YearData } from '../../types';
 import { calculateApportionedExpense } from '../../utils/accounting';
 
 const ASSET_ACCOUNTS = [
