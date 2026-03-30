@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactGA from 'react-ga4';
 import { initGoogleApi, login, loadAppData, tryRestoreSession } from '../../api/drive';
 import { useStore } from '../../hooks/useStore';
 import type { AppData } from '../../types';
@@ -43,6 +44,15 @@ export const LoginScreen: React.FC = () => {
         setAppData(initialData);
       }
       setIsAuthenticated(true, email);
+
+      // --- GoogleアナリティクスにユーザーIDとログインイベントを送信 ---
+      ReactGA.set({ user_id: email });
+      ReactGA.event({
+        category: "Authentication",
+        action: "Login"
+      });
+      // --------------------------------------------------------------
+
     } catch (err: any) {
       console.error('Data load error:', err);
       if (err.status === 403 || (err.result && err.result.error && err.result.error.code === 403)) {
