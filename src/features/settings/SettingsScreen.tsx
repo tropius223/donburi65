@@ -20,13 +20,59 @@ const CAPITAL_ACCOUNTS = [
 
 type PrevReceivable = { id: string; date: string; amount: number };
 
-export const SettingsScreen: React.FC = () => {
-  const currentYearData = useStore((state) => state.getCurrentYearData());
-  const appData = useStore((state) => state.appData);
-  const setAppData = useStore((state) => state.setAppData);
-  const currentYear = useStore((state) => state.currentYear);
+const performCarryOverCalc = (prevData: YearData, prevYearStr: string): OpeningBalances => {
+  const prevBal = prevData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
+  const prevSales = prevData.sales || [];
+  const prevPurchases = prevData.purchases || [];
+  const prevExpenses = prevData.expenses || [];
+  const prevInventory = prevData.inventory || [];
+  const prevRec = (prevData as any).previousReceivables || [];
 
-  // フック（useState, useEffect）は必ず早期リターンの前に配置する
+  const totalSales = prevSales.reduce((sum: number, sale: any) => sum + (sale.amount || 0), 0);
+  const totalPurchases = prevPurchases.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+  const totalExpenses = prevExpenses.reduce((sum: number, exp: any) => {
+    return sum + calculateApportionedExpense(exp.amount || 0, exp.isApportioned, prevData.apportionRate || 1);
+  }, 0);
+  const closingInventory = prevInventory.reduce((sum: number, item: any) => sum + (item.totalAmount || 0), 0);
+  
+  const costOfSales = (prevBal['商品'] || 0) + totalPurchases - closingInventory;
+  const income = totalSales - costOfSales - totalExpenses;
+
+  // 修正：期ズレ入金（未定 または 翌年以降に入金）は未回収（売掛金）として残す
+  const uncollectedSales = prevSales.filter((s: any) => !s.depositDate || s.depositDate > `${prevYearStr}-12-31`).reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+  // 修正：当期中に回収されたものだけを当期の入金として相殺する
+  const collectedSales = prevSales.filter((s: any) => s.depositDate && s.depositDate <= `${prevYearStr}-12-31`).reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+  const prevRecTotal = prevRec.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+
+  const closingAccountsReceivable = (prevBal['売掛金'] || 0) - prevRecTotal + uncollectedSales;
+
+  const jigyoDr = collectedSales + prevRecTotal;
+  const jigyoCr = totalPurchases + totalExpenses;
+  const jigyoBalance = jigyoDr - jigyoCr;
+  const closingJigyoKashi = jigyoBalance > 0 ? jigyoBalance : 0;
+  const closingJigyoKari = jigyoBalance < 0 ? Math.abs(jigyoBalance) : 0;
+
+  const openingMotouire = (prevBal['元入金'] || 0) + (prevBal['青色申告特別控除前の所得金額'] || 0) + (prevBal['事業主借'] || 0) - (prevBal['事業主貸'] || 0);
+  const nextMotouire = openingMotouire + income + closingJigyoKari - closingJigyoKashi;
+
+  return {
+    ...prevBal,
+    '売掛金': closingAccountsReceivable,
+    '商品': closingInventory,
+    '元入金': nextMotouire,
+    '青色申告特別控除前の所得金額': 0,
+    '事業主貸': 0,
+    '事業主借': 0,
+  };
+};
+
+export const SettingsScreen: React.FC = () => {
+  // 修正：Zustandから関数を実行して取得するアンチパターンを解消し、データの更新を確実に検知する
+  const appData = useStore((state) => state.appData);
+  const currentYear = useStore((state) => state.currentYear);
+  const setAppData = useStore((state) => state.setAppData);
+  const currentYearData = appData?.years[currentYear];
+
   const [openingBalances, setOpeningBalances] = useState<OpeningBalances>(
     currentYearData?.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 }
   );
@@ -35,63 +81,14 @@ export const SettingsScreen: React.FC = () => {
   const [newRecDate, setNewRecDate] = useState('');
   const [newRecAmount, setNewRecAmount] = useState<number | ''>('');
 
-  // 前年データから期首残高を計算するロジック（型を明示）
-  const performCarryOverCalc = (prevData: YearData): OpeningBalances => {
-    // デフォルト値を設定し、必須プロパティの欠損を防ぐ
-    const prevBal = prevData.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
-    const prevSales = prevData.sales || [];
-    const prevPurchases = prevData.purchases || [];
-    const prevExpenses = prevData.expenses || [];
-    const prevInventory = prevData.inventory || [];
-    const prevRec = (prevData as any).previousReceivables || [];
-
-    const totalSales = prevSales.reduce((sum: number, sale: any) => sum + (sale.amount || 0), 0);
-    const totalPurchases = prevPurchases.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-    const totalExpenses = prevExpenses.reduce((sum: number, exp: any) => {
-      return sum + calculateApportionedExpense(exp.amount || 0, exp.isApportioned, prevData.apportionRate || 1);
-    }, 0);
-    const closingInventory = prevInventory.reduce((sum: number, item: any) => sum + (item.totalAmount || 0), 0);
-    
-    const costOfSales = (prevBal['商品'] || 0) + totalPurchases - closingInventory;
-    const income = totalSales - costOfSales - totalExpenses;
-
-    const uncollectedSales = prevSales.filter((s: any) => s.depositDate === '').reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
-    const collectedSales = prevSales.filter((s: any) => s.depositDate !== '').reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
-    const prevRecTotal = prevRec.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
-
-    const closingAccountsReceivable = (prevBal['売掛金'] || 0) - prevRecTotal + uncollectedSales;
-
-    const jigyoDr = collectedSales + prevRecTotal;
-    const jigyoCr = totalPurchases + totalExpenses;
-    const jigyoBalance = jigyoDr - jigyoCr;
-    const closingJigyoKashi = jigyoBalance > 0 ? jigyoBalance : 0;
-    const closingJigyoKari = jigyoBalance < 0 ? Math.abs(jigyoBalance) : 0;
-
-    const openingMotouire = (prevBal['元入金'] || 0) + (prevBal['青色申告特別控除前の所得金額'] || 0) + (prevBal['事業主借'] || 0) - (prevBal['事業主貸'] || 0);
-    const nextMotouire = openingMotouire + income + closingJigyoKari - closingJigyoKashi;
-
-    return {
-      ...prevBal,
-      '売掛金': closingAccountsReceivable,
-      '商品': closingInventory,
-      '元入金': nextMotouire,
-      '青色申告特別控除前の所得金額': 0,
-      '事業主貸': 0,
-      '事業主借': 0,
-    };
-  };
-
-  // 【追加】対象年度のデータ枠がない場合に自動作成してローディングブロックを解除する処理
   useEffect(() => {
-    if (appData && !currentYearData) {
-      // TypeScriptエラーを防ぐため型注釈を明示
+    if (appData && !appData.years[currentYear]) {
       let newOpeningBalances: OpeningBalances = { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 };
       const prevYearStr = (parseInt(currentYear) - 1).toString();
       const prevYearData = appData.years[prevYearStr];
       
-      // 前年データが存在すれば繰越計算を実行
       if (prevYearData) {
-         newOpeningBalances = performCarryOverCalc(prevYearData);
+         newOpeningBalances = performCarryOverCalc(prevYearData, prevYearStr);
       }
       
       setAppData({
@@ -109,7 +106,7 @@ export const SettingsScreen: React.FC = () => {
         }
       });
     }
-  }, [appData, currentYear, currentYearData, setAppData]);
+  }, [appData, currentYear, setAppData]);
 
   useEffect(() => {
     if (currentYearData) {
@@ -126,7 +123,6 @@ export const SettingsScreen: React.FC = () => {
     }
   }, [currentYearData]);
 
-  // すべてのフックを呼び出した後に早期リターンを実行する
   if (!currentYearData || !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
@@ -182,7 +178,6 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
-  // 【追加】手動で繰越計算を実行する処理
   const handleManualCarryOver = () => {
     const prevYearData = appData.years[prevYear];
     if (!prevYearData) {
@@ -191,7 +186,15 @@ export const SettingsScreen: React.FC = () => {
     }
 
     if (window.confirm('前年の期末残高を再計算して、現在の入力値を上書きしますか？\n（本年の固定資産などは前年と同じ値がセットされ、売掛金や商品、元入金などは自動計算されます）')) {
-      const calculated = performCarryOverCalc(prevYearData);
+      const calculated = performCarryOverCalc(prevYearData, prevYear);
+      
+      setOpeningBalances(calculated);
+      const newInputs: Record<string, string> = {};
+      Object.keys(calculated).forEach(k => {
+        newInputs[k] = calculated[k] === 0 ? '' : calculated[k].toString();
+      });
+      setInputValues(newInputs);
+
       setAppData({
         ...appData,
         years: {
@@ -199,20 +202,26 @@ export const SettingsScreen: React.FC = () => {
           [currentYear]: {
             ...currentYearData,
             openingBalances: calculated
-          }
+          } as any
         }
       });
-      alert('前年の期末残高を計算し、反映しました。\n※どんぶり帳簿では入出金済みの残高はすべて相殺されるため、売掛金や在庫などがなければ残高は0円になります。');
+
+      const isAllZero = Object.values(calculated).every(v => v === 0);
+      if (isAllZero) {
+        alert('計算完了: 繰り越す残高は「0円」でした。\n\nどんぶり帳簿では、入出金済みの売上や費用は事業主勘定で完全に相殺されるため、期末残高に残りません。未回収の売掛金や在庫等がなければ0円になるのは正常な動作です。');
+      } else {
+        alert('前年の期末残高を計算し、画面に反映しました。');
+      }
     }
   };
 
   const handleResetData = () => {
     if (!appData) return;
-    if (window.confirm('本当にすべてのデータを初期化しますか？\n※この操作は取り消せません。Google Drive上のデータも真っ新な状態に上書きされます。')) {
-      const initialData: AppData = {
-        version: "1.4",
-        userId: appData.userId,
+    if (window.confirm(`本当に【${currentYear}年度】のデータを初期化しますか？\n他の年度のデータは保持されますが、この年度に入力したデータは真っ新になります。`)) {
+      setAppData({
+        ...appData,
         years: {
+          ...appData.years,
           [currentYear]: {
             apportionRate: 1,
             openingBalances: { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 },
@@ -222,8 +231,7 @@ export const SettingsScreen: React.FC = () => {
             inventory: []
           }
         }
-      };
-      setAppData(initialData);
+      });
     }
   };
 
@@ -271,6 +279,28 @@ export const SettingsScreen: React.FC = () => {
     const sizes = ['Bytes', 'KB', 'MB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const renderDebugInfo = () => {
+    const prevYearData = appData?.years[prevYear];
+    if (!prevYearData) return <p className="text-gray-500">前年のデータは存在しません。</p>;
+
+    const prevSales = prevYearData.sales || [];
+    // 修正：デバッグ表示の未回収・入金済みの計算条件も期ズレを考慮するよう修正
+    const uncollectedSales = prevSales.filter((s: any) => !s.depositDate || s.depositDate > `${prevYear}-12-31`).reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+    const collectedSales = prevSales.filter((s: any) => s.depositDate && s.depositDate <= `${prevYear}-12-31`).reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+    const calc = performCarryOverCalc(prevYearData, prevYear);
+
+    return (
+      <div className="mt-4 p-4 bg-gray-100 rounded text-xs font-mono text-gray-700 space-y-1">
+        <p className="font-bold border-b border-gray-300 mb-2 pb-1">内部データ確認用：前年({prevYear})の計算状況</p>
+        <p>未回収の売上合計 (入金日が未定のもの): {uncollectedSales.toLocaleString()} 円</p>
+        <p>入金済みの売上合計: {collectedSales.toLocaleString()} 円</p>
+        <p>計算された次期繰越の売掛金: {calc['売掛金'].toLocaleString()} 円</p>
+        <p>計算された次期繰越の元入金: {calc['元入金'].toLocaleString()} 円</p>
+        <p className="mt-2 text-gray-500">※入金済みの売上は、事業主勘定と相殺されるため元入金を増加させません。</p>
+      </div>
+    );
   };
 
   return (
@@ -340,7 +370,7 @@ export const SettingsScreen: React.FC = () => {
                             <td className="py-2 px-3 text-center border-l border-gray-200">
                               <button onClick={() => handleDeletePrevReceivable(r.id)} className="text-gray-400 hover:text-red-600 p-1">
                                 <svg className="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                                 </svg>
                               </button>
                             </td>
@@ -373,7 +403,7 @@ export const SettingsScreen: React.FC = () => {
               </div>
 
               <div className="bg-blue-50 border border-blue-100 p-4 rounded text-sm text-blue-800 leading-relaxed shadow-sm">
-                どんぶり帳簿のロジックにより、資金の出入りは<strong>事業主勘定</strong>に集約されます。<br/>
+                どんぶり帳簿のロジックにより、資金の出入りは事業主勘定に集約されます。<br/>
                 そのため、売掛金、事業主貸、元入金 以外の科目（現預金や未払金など）に数値を入力して残高管理を行うことは推奨していません。
               </div>
             </div>
@@ -414,20 +444,25 @@ export const SettingsScreen: React.FC = () => {
         </div>
       </div>
 
+      <div className="bg-white shadow sm:rounded-lg p-6 border-t-4 border-gray-300">
+        <h3 className="text-lg font-medium text-gray-800 border-b pb-4 mb-6">デバッグ用情報</h3>
+        {renderDebugInfo()}
+      </div>
+
       <div className="bg-white shadow sm:rounded-lg p-6 border-t-4 border-red-500">
         <h3 className="text-lg font-medium text-red-600 border-b pb-4 mb-6">危険な操作</h3>
         <p className="text-sm text-gray-500 mb-6">
-          入力した仕訳などのすべてのデータを初期化し、真っ新な状態に戻します。旧データの不整合をリセットしたい場合に使用してください。
+          入力した仕訳などのデータを初期化し、真っ新な状態に戻します。旧データの不整合をリセットしたい場合に使用してください。
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
           <button
             onClick={handleResetData}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
           >
-            全データを初期化する
+            {currentYear}年度のデータを初期化する
           </button>
           <span className="text-sm text-gray-500 font-medium">
-            現在のデータ容量: {formatBytes(dataSize)}
+            全体データ容量: {formatBytes(dataSize)}
           </span>
         </div>
       </div>

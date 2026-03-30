@@ -7,8 +7,10 @@ const DEV_SKIP_SUBSCRIPTION_CHECK = true;
 
 export const BlueReturnScreen: React.FC = () => {
   const userEmail = useStore((state) => state.userEmail);
-  const currentYearData = useStore((state) => state.getCurrentYearData());
-  // currentYearはここでは使用しないため削除
+  // 修正：アンチパターンを解消
+  const appData = useStore((state) => state.appData);
+  const currentYear = useStore((state) => state.currentYear);
+  const currentYearData = appData?.years[currentYear];
 
   const [isSubscribed, setIsSubscribed] = useState<boolean | null>(DEV_SKIP_SUBSCRIPTION_CHECK ? true : null);
   const [isLoading, setIsLoading] = useState(!DEV_SKIP_SUBSCRIPTION_CHECK);
@@ -164,10 +166,20 @@ export const BlueReturnScreen: React.FC = () => {
   const getBal = (key: string) => currentYearData?.openingBalances[key] || 0;
 
   // 売掛金の期末残高計算
+  const prevYearStr = (parseInt(currentYear) - 1).toString();
+  const prevYearData = appData?.years[prevYearStr];
+
+  // 修正：前年売掛金のうち、当期に回収されたものを自動算出
+  const autoCollectedPrevSales = prevYearData?.sales.filter((s: any) => s.depositDate >= `${currentYear}-01-01` && s.depositDate <= `${currentYear}-12-31`).reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
+  
   const prevReceivables = (currentYearData as any)?.previousReceivables || [];
-  const prevReceivablesTotal = prevReceivables.reduce((sum: number, r: any) => sum + r.amount, 0);
-  const uncollectedSales = currentYearData?.sales.filter((s: any) => s.depositDate === '').reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
-  const collectedSales = currentYearData?.sales.filter((s: any) => s.depositDate !== '').reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
+  const prevReceivablesTotal = prevReceivables.reduce((sum: number, r: any) => sum + r.amount, 0) + autoCollectedPrevSales;
+  
+  // 修正：期ズレを考慮し、当期売上のうち未回収または翌年以降回収のものを算出
+  const uncollectedSales = currentYearData?.sales.filter((s: any) => !s.depositDate || s.depositDate > `${currentYear}-12-31`).reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
+  // 修正：当期売上のうち、当期中に回収されたものを算出
+  const collectedSales = currentYearData?.sales.filter((s: any) => s.depositDate && s.depositDate <= `${currentYear}-12-31`).reduce((sum: number, s: any) => sum + s.amount, 0) || 0;
+  
   const openingAccountsReceivable = getBal('売掛金');
   const closingAccountsReceivable = openingAccountsReceivable - prevReceivablesTotal + uncollectedSales;
 
