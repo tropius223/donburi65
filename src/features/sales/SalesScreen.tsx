@@ -5,13 +5,11 @@ import type { Sale } from '../../types';
 // 既存の売上明細を編集・表示するための行コンポーネント
 const SaleRow = ({ sale, currentYear, onUpdate, onDelete }: { sale: Sale; currentYear: string; onUpdate: (s: Sale) => void; onDelete: (id: string) => void }) => {
   const [editData, setEditData] = useState(sale);
-  const [depositUndecided, setDepositUndecided] = useState(sale.depositDate === '');
   const [displayAmount, setDisplayAmount] = useState(sale.amount === 0 ? '' : sale.amount.toLocaleString());
 
   // 親の状態が変更されたらローカル状態も同期する
   useEffect(() => {
     setEditData(sale);
-    setDepositUndecided(sale.depositDate === '');
     setDisplayAmount(sale.amount === 0 ? '' : sale.amount.toLocaleString());
   }, [sale]);
 
@@ -46,34 +44,20 @@ const SaleRow = ({ sale, currentYear, onUpdate, onDelete }: { sale: Sale; curren
     }
   };
 
-    return (
+  return (
     <tr className="hover:bg-gray-50 border-b border-gray-200 transition-colors">
       <td className="p-0">
         <input type="date" min={`${currentYear}-01-01`} max={`${currentYear}-12-31`} value={editData.salesDate} onChange={(e) => handleChange('salesDate', e.target.value)} onBlur={handleBlur} className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
       </td>
       <td className="p-0 border-l border-gray-200">
-        <div className="flex items-center">
-          <input
-            type="date"
-            min={editData.salesDate}
-            value={editData.depositDate}
-            onChange={(e) => handleChange('depositDate', e.target.value)}
-            onBlur={handleBlur}
-            disabled={depositUndecided}
-            className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              const undecided = !depositUndecided;
-              setDepositUndecided(undecided);
-              handleChange('depositDate', undecided ? '' : editData.salesDate);
-            }}
-            className="ml-2 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            未定
-          </button>
-        </div>
+        <input
+          type="date"
+          min={editData.salesDate}
+          value={editData.depositDate}
+          onChange={(e) => handleChange('depositDate', e.target.value)}
+          onBlur={handleBlur}
+          className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm"
+        />
       </td>
       <td className="p-0 border-l border-gray-200">
         <input type="text" list="client-list" value={editData.client} onChange={(e) => handleChange('client', e.target.value)} onBlur={handleBlur} placeholder="売上先を入力" className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
@@ -109,7 +93,6 @@ export const SalesScreen: React.FC = () => {
   // 新規入力行のステート
   const [newSalesDate, setNewSalesDate] = useState('');
   const [newDepositDate, setNewDepositDate] = useState('');
-  const [newDepositUndecided, setNewDepositUndecided] = useState(false);
   const [newClient, setNewClient] = useState('');
   const [newAmount, setNewAmount] = useState<number | ''>('');
   const [newAmountDisplay, setNewAmountDisplay] = useState('');
@@ -180,7 +163,7 @@ export const SalesScreen: React.FC = () => {
     const newSale: Sale = {
       id: crypto.randomUUID(),
       salesDate: newSalesDate,
-      depositDate: newDepositUndecided ? '' : newDepositDate,
+      depositDate: newDepositDate,
       client: newClient,
       amount: newAmount as number,
     };
@@ -228,7 +211,9 @@ export const SalesScreen: React.FC = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">売上日</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6 border-l border-gray-200">入金日 / 未定</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6 border-l border-gray-200">
+                  入金日 <span className="font-normal normal-case opacity-75">(未定は空欄)</span>
+                </th>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/6 border-l border-gray-200">売上先</th>
                 <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6 border-l border-gray-200">金額 (円)</th>
                 <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12 border-l border-gray-200">操作</th>
@@ -241,28 +226,14 @@ export const SalesScreen: React.FC = () => {
                   <input type="date" min={`${currentYear}-01-01`} max={`${currentYear}-12-31`} value={newSalesDate} onChange={(e) => setNewSalesDate(e.target.value)} onKeyDown={handleKeyDown} className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-blue-900 placeholder-blue-300" />
                 </td>
                 <td className="p-0 border-l border-gray-200">
-                  <div className="flex items-center">
-                    <input
-                      type="date"
-                      min={newSalesDate}
-                      value={newDepositDate}
-                      onChange={(e) => setNewDepositDate(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      disabled={newDepositUndecided}
-                      className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-blue-900 placeholder-blue-300"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const u = !newDepositUndecided;
-                        setNewDepositUndecided(u);
-                        if (u) setNewDepositDate('');
-                      }}
-                      className="ml-2 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    >
-                      未定
-                    </button>
-                  </div>
+                  <input
+                    type="date"
+                    min={newSalesDate}
+                    value={newDepositDate}
+                    onChange={(e) => setNewDepositDate(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-blue-900 placeholder-blue-300"
+                  />
                 </td>
                 <td className="p-0 border-l border-gray-200">
                   <input type="text" list="client-list" value={newClient} onChange={(e) => setNewClient(e.target.value)} onKeyDown={handleKeyDown} placeholder="新規売上先を追加..." className="block w-full border-0 bg-transparent py-3 px-4 focus:ring-2 focus:ring-blue-500 sm:text-sm text-blue-900 placeholder-blue-400 font-medium" />
