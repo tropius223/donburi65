@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { OpeningBalances, YearData } from '../../types';
 import { calculateApportionedExpense } from '../../utils/accounting';
@@ -38,9 +38,7 @@ const performCarryOverCalc = (prevData: YearData, prevYearStr: string): OpeningB
   const costOfSales = (prevBal['商品'] || 0) + totalPurchases - closingInventory;
   const income = totalSales - costOfSales - totalExpenses;
 
-  // 修正：期ズレ入金（未定 または 翌年以降に入金）は未回収（売掛金）として残す
   const uncollectedSales = prevSales.filter((s: any) => !s.depositDate || s.depositDate > `${prevYearStr}-12-31`).reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
-  // 修正：当期中に回収されたものだけを当期の入金として相殺する
   const collectedSales = prevSales.filter((s: any) => s.depositDate && s.depositDate <= `${prevYearStr}-12-31`).reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
   const prevRecTotal = prevRec.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
 
@@ -67,11 +65,24 @@ const performCarryOverCalc = (prevData: YearData, prevYearStr: string): OpeningB
 };
 
 export const SettingsScreen: React.FC = () => {
-  // 修正：Zustandから関数を実行して取得するアンチパターンを解消し、データの更新を確実に検知する
   const appData = useStore((state) => state.appData);
   const currentYear = useStore((state) => state.currentYear);
   const setAppData = useStore((state) => state.setAppData);
   const currentYearData = appData?.years[currentYear];
+
+  // 前年のデータを取得（フックの前に定義）
+  const prevYear = (parseInt(currentYear) - 1).toString();
+  const prevYearDataForUI = appData?.years[prevYear];
+  const hasPreviousYearData = !!prevYearDataForUI;
+
+  // 前年の未回収売掛金が存在するかどうかの判定（フックとして早期リターンの前に配置）
+  const uncollectedSalesFromPrevYear = useMemo(() => {
+    if (!prevYearDataForUI || !prevYearDataForUI.sales) return 0;
+    return prevYearDataForUI.sales
+      .filter((s: any) => !s.depositDate || s.depositDate > `${prevYear}-12-31`)
+      .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+  }, [prevYearDataForUI, prevYear]);
+  const hasUncollectedSalesFromPrevYear = uncollectedSalesFromPrevYear > 0;
 
   const [openingBalances, setOpeningBalances] = useState<OpeningBalances>(
     currentYearData?.openingBalances || { 現金: 0, 売掛金: 0, 商品: 0, 元入金: 0 }
@@ -126,9 +137,6 @@ export const SettingsScreen: React.FC = () => {
   if (!currentYearData || !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
   }
-
-  const prevYear = (parseInt(currentYear) - 1).toString();
-  const hasPreviousYearData = !!appData.years[prevYear];
 
   const saveSettings = (balances: OpeningBalances, receivables: PrevReceivable[] = prevReceivables) => {
     if (!appData) return;
@@ -286,7 +294,6 @@ export const SettingsScreen: React.FC = () => {
     if (!prevYearData) return <p className="text-gray-500">前年のデータは存在しません。</p>;
 
     const prevSales = prevYearData.sales || [];
-    // 修正：デバッグ表示の未回収・入金済みの計算条件も期ズレを考慮するよう修正
     const uncollectedSales = prevSales.filter((s: any) => !s.depositDate || s.depositDate > `${prevYear}-12-31`).reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
     const collectedSales = prevSales.filter((s: any) => s.depositDate && s.depositDate <= `${prevYear}-12-31`).reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
     const calc = performCarryOverCalc(prevYearData, prevYear);
@@ -338,8 +345,20 @@ export const SettingsScreen: React.FC = () => {
               <div>
                 <h4 className="text-md font-medium text-gray-900 mb-4 border-b pb-2">前年売掛金のうち、本年入金されたもの</h4>
                 {hasPreviousYearData ? (
-                  <div className="bg-blue-50 border border-blue-100 p-4 rounded text-sm text-blue-800 shadow-sm">
-                    前年帳簿をどんぶり帳簿でつけているため、入力の必要はありません。（自動で連携されます）
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded text-sm text-blue-800 shadow-sm">
+                      前年帳簿をどんぶり帳簿でつけているため、ここでの手入力は必要ありません。（自動で連携されます）
+                    </div>
+                    {hasUncollectedSalesFromPrevYear && (
+                      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-sm text-yellow-800 shadow-sm">
+                        <p className="font-bold mb-1 text-yellow-900">【前年から繰り越された未回収の売掛金があります】</p>
+                        <p className="leading-relaxed">
+                          前年（{prevYear}年）の帳簿に、入金日が未定（または本年以降）の売上（計 {uncollectedSalesFromPrevYear.toLocaleString()} 円）が残っています。<br/>
+                          入金日が確定しだい、画面上部の「年度」を <strong>{prevYear}年</strong> に切り替えて、売上帳の該当データに「入金日」を入力してください。<br/>
+                          入力すると、本年の帳簿に自動で入金が反映されます。
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
