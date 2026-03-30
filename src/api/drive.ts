@@ -118,7 +118,8 @@ export const tryRestoreSession = async (): Promise<string | null> => {
 
 export const login = () => {
   if (tokenClient) {
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+    // 修正: prompt: 'consent' を削除し、すでに許可済みの場合はシームレスにログインできるようにする
+    tokenClient.requestAccessToken();
   }
 };
 
@@ -130,12 +131,8 @@ export const logout = () => {
   if (typeof gapi !== 'undefined' && gapi.client) {
     const token = gapi.client.getToken();
     if (token) {
-      // revokeのコールバックを待たずに、まずクライアント上のトークンを消去する
       gapi.client.setToken(null);
-      // Googleサーバー側のトークンも無効化
-      google.accounts.oauth2.revoke(token.access_token, () => {
-        console.log('Token revoked');
-      });
+      // 修正: revoke（アプリ連携の完全解除）を削除し、ブラウザ上のセッション破棄のみに留める
     }
   }
 };
