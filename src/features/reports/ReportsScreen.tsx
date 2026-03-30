@@ -6,8 +6,10 @@ const DEV_SKIP_SUBSCRIPTION_CHECK = true;
 
 export const ReportsScreen = () => {
   const userEmail = useStore((state) => state.userEmail);
-  const currentYearData = useStore((state) => state.getCurrentYearData());
+  // 修正：アンチパターンを解消
+  const appData = useStore((state) => state.appData);
   const currentYear = useStore((state) => state.currentYear);
+  const currentYearData = appData?.years[currentYear];
 
   const [isSubscribed, setIsSubscribed] = useState<boolean | null>(DEV_SKIP_SUBSCRIPTION_CHECK ? true : null);
   const [isLoading, setIsLoading] = useState(!DEV_SKIP_SUBSCRIPTION_CHECK);
@@ -95,6 +97,10 @@ export const ReportsScreen = () => {
   const { entries, ledgerMap } = useMemo(() => {
     if (!currentYearData) return { entries: [], ledgerMap: new Map() };
     
+    // 前期データを取得
+    const prevYearStr = (parseInt(currentYear) - 1).toString();
+    const prevYearData = appData?.years[prevYearStr];
+
     type JournalEntry = {
       id: string;
       date: string;
@@ -117,7 +123,8 @@ export const ReportsScreen = () => {
         creditAmount: sale.amount,
         memo: sale.client || '売上'
       });
-      if (sale.depositDate) {
+      // 修正：当期中に入金されたものだけを当期の入金仕訳にする
+      if (sale.depositDate && sale.depositDate <= `${currentYear}-12-31`) {
         journal.push({
           id: `sale-${sale.id}-2`,
           date: sale.depositDate,
@@ -129,6 +136,23 @@ export const ReportsScreen = () => {
         });
       }
     });
+
+    // 修正：前期データが存在する場合、前期売上のうち「当期」に入金されたものを自動的に「当期の入金仕訳」として追加する
+    if (prevYearData && prevYearData.sales) {
+      prevYearData.sales.forEach((sale: any) => {
+        if (sale.depositDate && sale.depositDate >= `${currentYear}-01-01` && sale.depositDate <= `${currentYear}-12-31`) {
+          journal.push({
+            id: `prev-sale-${sale.id}`,
+            date: sale.depositDate,
+            debitAccount: '事業主貸',
+            debitAmount: sale.amount,
+            creditAccount: '売掛金',
+            creditAmount: sale.amount,
+            memo: `${sale.client || '前年売上'} 入金 (自動連携)`
+          });
+        }
+      });
+    }
 
     const prevReceivables = (currentYearData as any).previousReceivables || [];
     prevReceivables.forEach((r: any) => {

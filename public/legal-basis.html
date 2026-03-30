@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記帳方式の理論的根拠 - どんぶり帳簿</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.8;
+        }
+        .law-quote {
+            background-color: #f8fafc;
+            border-left: 4px solid #94a3b8;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+            <a href="landing_page.html" class="text-lg font-black text-orange-600">どんぶり帳簿</a>
+            <a href="manual.html" class="text-sm font-bold text-slate-500 hover:text-slate-800 transition">マニュアルに戻る</a>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-4 py-12 md:py-20">
+        <article class="bg-white shadow-sm border border-slate-200 rounded-3xl p-8 md:p-16">
+            
+            <header class="mb-12 text-center">
+                <h1 class="text-2xl md:text-3xl font-black mb-6 leading-tight">
+                    個人事業主における<br class="md:hidden">事業主勘定を用いた記帳の理論的根拠
+                </h1>
+                <p class="text-slate-500 text-sm">会計原則および所得税法に基づく一般的解釈の提示</p>
+            </header>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-12">
+                <p class="text-xs text-amber-800 leading-relaxed font-bold text-center">
+                    【免責事項・法的注意点】<br>
+                    本ページの内容は、所得税法および会計原則に基づく一般的な理論を解説するものであり、特定の個別の税務案件について助言を行うものではありません。具体的な税務申告に際しては、税務署または税理士にご相談ください。
+                </p>
+            </div>
+
+            <section class="mb-16">
+                <h2 class="text-xl font-black border-b-2 border-slate-800 pb-2 mb-6">1. 人格非分離の原則と事業用資産</h2>
+                <p class="mb-4">
+                    個人事業主においては、法人と異なり「事業主個人」と「事業体」は法律上同一の人格です。
+                </p>
+                <p class="mb-4">
+                    所得税法上、事業用資産と家計用資産の区別は帳簿上の便宜的な分類に過ぎません。どの預金口座に資金が滞留しているかは、所得（損益）の計算において本質的な要素ではなく、事業主のポケットマネー（私用口座）を通じて行われた取引を「事業主勘定」で処理することは、実態に即した正当な会計処理です。
+                </p>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="text-xl font-black border-b-2 border-slate-800 pb-2 mb-6">2. 所得税法における「正確な記録」の定義</h2>
+                <p class="mb-4">
+                    青色申告の承認要件は、所得税法第143条において以下のように規定されています。
+                </p>
+                <div class="law-quote">
+                    <p class="font-bold mb-2">所得税法 第143条（青色申告）</p>
+                    不動産所得、事業所得又は山林所得を生ずべき業務を行なう者は、財務省令で定めるところにより、その業務に係る所得の金額の計算につき、<b>一般に公正妥当と認められる会計の慣習に従い、正確に記録</b>し、かつ、その記録に基づき作成された帳簿書類を保存することができる。
+                </div>
+                <p class="mb-4">
+                    ここでいう正確な記録とは、売上や費用といった損益取引が発生主義（取引が発生した時点で計上する原則）に基づき、適切な勘定科目をもって記録されていることを指します。
+                </p>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="text-xl font-black border-b-2 border-slate-800 pb-2 mb-6">3. 財務省令による帳簿記載の代行規定</h2>
+                <p class="mb-4">
+                    所得税法施行規則第57条では、預金口座別受払帳の記載を求めていますが、同規則第61条には重要な免責規定が存在します。
+                </p>
+                <div class="law-quote">
+                    <p class="font-bold mb-2">所得税法施行規則 第61条（簡易な記帳の方法）</p>
+                    前三条の規定にかかわらず、事業所得等を有する者が、現金主義によらず（中略）損益計算書及び貸借対照表を作成することができるときは、その記録をもつて第57条の規定による記載に代えることができる。
+                </div>
+                <p class="mb-4">
+                    この規定により、最終的に適切な貸借対照表（B/S）および損益計算書（P/L）が作成されるのであれば、特定の預金出納帳を設けることは法的義務ではないことが解釈されます。
+                </p>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="text-xl font-black border-b-2 border-slate-800 pb-2 mb-6">4. 発生主義における事業主勘定の整合性</h2>
+                <p class="mb-6">
+                    青色申告に必要な発生主義に基づき、売上の計上（売掛金の発生）と代金の回収（売掛金の消し込み）を事業主勘定で行うモデルケースを示します。
+                </p>
+                
+                <div class="space-y-4 mb-8">
+                    <div class="border border-slate-200 rounded-xl p-5">
+                        <p class="text-xs font-bold text-slate-400 mb-3">1. 売上の発生時（発生主義による計上）</p>
+                        <div class="flex justify-between font-mono text-sm md:text-base">
+                            <span>（借）売掛金</span>
+                            <span>（貸）売上</span>
+                        </div>
+                        <p class="text-[10px] mt-2 text-slate-500">意味：役務提供が完了し、報酬を受け取る権利が発生した状態。</p>
+                    </div>
+                    
+                    <div class="border border-slate-200 rounded-xl p-5">
+                        <p class="text-xs font-bold text-slate-400 mb-3">2. 代金の回収時（事業主の私用口座への入金）</p>
+                        <div class="flex justify-between font-mono text-sm md:text-base">
+                            <span>（借）事業主貸</span>
+                            <span>（貸）売掛金</span>
+                        </div>
+                        <p class="text-[10px] mt-2 text-slate-500">意味：発生していた権利（売掛金）を、個人人格が受領した状態（資本の払い戻し）。</p>
+                    </div>
+
+                    <div class="border border-slate-200 rounded-xl p-5">
+                        <p class="text-xs font-bold text-slate-400 mb-3">3. 経費の支払時（事業主の私費による立替）</p>
+                        <div class="flex justify-between font-mono text-sm md:text-base">
+                            <span>（借）通信費</span>
+                            <span>（貸）事業主借</span>
+                        </div>
+                        <p class="text-[10px] mt-2 text-slate-500">意味：個人の資金で事業の経費を支払った状態（資本の追加投入）。</p>
+                    </div>
+                </div>
+
+                <p>
+                    この手法は、貸借平均の原理を維持しつつ、純資産の移動を正確に記録しているため、複式簿記の理論的整合性に瑕疵はありません。
+                </p>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="text-xl font-black border-b-2 border-slate-800 pb-2 mb-6">5. 税務調査における実務的視点</h2>
+                <p class="mb-4">
+                    税務調査において最も重視されるのは、売上の計上漏れと経費の実在性です。預金残高の突合（残高合わせ）が行われる主目的は、隠し口座による売上除外や、私的費用の過大計上を検出することにあります。
+                </p>
+                <p>
+                    最初から「すべての入出金を事業主勘定で一元処理している」旨を明らかにしている場合、帳簿上の預金残高という概念そのものが存在しないため、残高不一致を理由に帳簿全体の信頼性が否定されることはありません。
+                </p>
+            </section>
+
+            <footer class="pt-12 border-t border-slate-100">
+                <p class="text-sm font-bold text-slate-700 mb-4 text-center">結論</p>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    預金勘定を管理せず、売掛金と事業主勘定を組み合わせる手法は、所得税法施行規則第61条の規定を満たし、会計理論上も適正な複式簿記の形態です。特に事業専用口座を持たない副業ワーカーにとって、実態に即した誠実かつ効率的な記帳手法といえます。
+                </p>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="bg-slate-900 py-12 text-slate-500 text-xs text-center">
+        <p>&copy; 2026 どんぶり帳簿 - 理論的根拠に関する解説資料</p>
+    </footer>
+
+</body>
+</html>

@@ -195,6 +195,7 @@ function App() {
             <a href="/terms.html" className="hover:text-gray-900 hover:underline">利用規約</a>
             <a href="/privacy.html" className="hover:text-gray-900 hover:underline">プライバシーポリシー</a>
             <a href="#" className="hover:text-gray-900 hover:underline">特定商取引法に基づく表記</a>
+            <a href="/legal-basis.html" className="hover:text-gray-900 hover:underline">法的根拠</a>
           </div>
           <div>&copy; {new Date().getFullYear()} どんぶり帳簿</div>
         </div>
