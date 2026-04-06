@@ -90,7 +90,6 @@ const ColumnHeader = ({
   );
 };
 
-// 各セルの表示/編集を管理するコンポーネント
 const ExpenseCell: React.FC<{
   month: number;
   colIndex: number;
@@ -166,7 +165,6 @@ const ExpenseCell: React.FC<{
         shouldMove = true;
         break;
       case 'ArrowLeft':
-        // キャレットが先頭にある場合のみ左へ移動
         if (selectionStart === 0 && selectionEnd === 0) {
           e.preventDefault();
           nextCol = colIndex - 1;
@@ -174,7 +172,6 @@ const ExpenseCell: React.FC<{
         }
         break;
       case 'ArrowRight':
-        // キャレットが末尾にある場合のみ右へ移動
         if (selectionStart === valueLength && selectionEnd === valueLength) {
           e.preventDefault();
           nextCol = colIndex + 1;
@@ -450,7 +447,8 @@ export const ExpensesScreen: React.FC = () => {
           <table className="min-w-full border-collapse">
             <thead>
               <tr className="bg-gray-100">
-                <th className="sticky left-0 z-10 bg-gray-100 border-b border-r border-gray-300 p-2 text-sm font-bold text-gray-700 w-20 align-middle text-center">
+                {/* 修正箇所: z-10 を z-[5] に変更 */}
+                <th className="sticky left-0 z-[5] bg-gray-100 border-b border-r border-gray-300 p-2 text-sm font-bold text-gray-700 w-20 align-middle text-center">
                   発生月
                 </th>
                 {columns.map((col, idx) => (
@@ -477,7 +475,8 @@ export const ExpensesScreen: React.FC = () => {
             <tbody>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
                 <tr key={month} className="hover:bg-blue-50/30 transition-colors">
-                  <td className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 p-2 text-sm font-medium text-gray-700 text-center">
+                  {/* 修正箇所: z-10 を z-[5] に変更し背景色 bg-white を適用 */}
+                  <td className="sticky left-0 z-[5] bg-white border-b border-r border-gray-200 p-2 text-sm font-medium text-gray-700 text-center">
                     {month}月
                   </td>
                   {columns.map((col, idx) => (
@@ -500,7 +499,8 @@ export const ExpensesScreen: React.FC = () => {
             </tbody>
             <tfoot>
               <tr className="bg-gray-100 font-bold">
-                <td className="sticky left-0 z-10 bg-gray-100 border-r border-gray-300 p-2 text-center text-sm text-gray-700">
+                {/* 修正箇所: z-10 を z-[5] に変更 */}
+                <td className="sticky left-0 z-[5] bg-gray-100 border-r border-gray-300 p-2 text-center text-sm text-gray-700">
                   合計
                 </td>
                 {columns.map((col, idx) => (
