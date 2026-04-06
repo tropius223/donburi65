@@ -198,22 +198,79 @@ export const LoginScreen: React.FC = () => {
                   </div>
                 )}
 
-                {/* クリック可能なプレビュー画像 */}
+{/* クリック可能なプレビューUI（画像ではなくHTML/CSSで描画） */}
                 <div 
                   onClick={handleLoginClick}
-                  className={`mb-6 w-full h-32 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center overflow-hidden relative ${!isMaintenanceMode ? 'cursor-pointer hover:shadow-lg hover:border-orange-200 transition-all duration-300 group' : 'opacity-70'}`}
+                  className={`mb-6 w-full h-40 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden relative ${!isMaintenanceMode ? 'cursor-pointer hover:shadow-lg hover:border-orange-300 transition-all duration-300 group' : 'opacity-70'}`}
                   title={!isMaintenanceMode ? "クリックしてログイン" : ""}
                 >
-                  <img 
-                    src={appMainViewImg} 
-                    alt="アプリ画面プレビュー" 
-                    className={`object-cover w-full h-full opacity-90 ${!isMaintenanceMode ? 'group-hover:scale-105 transition-transform duration-500' : ''}`} 
-                  />
+                  {/* CSSで作った擬似アプリ画面（実際のUIを再現） */}
+                  <div className={`w-full h-full bg-white flex flex-col ${!isMaintenanceMode ? 'group-hover:scale-105 transition-transform duration-500' : ''}`}>
+                    
+                    {/* 擬似ヘッダー */}
+                    <div className="flex justify-between items-center px-3 pt-2 pb-1 border-b border-gray-100">
+                      <span className="text-[11px] font-black text-gray-800 tracking-tight">どんぶり帳簿</span>
+                      <span className="text-[8px] text-green-600 font-bold pr-1">保存済み</span>
+                    </div>
+                    
+                    {/* 擬似タブ */}
+                    <div className="flex gap-3 px-3 text-[9px] font-bold text-gray-400 border-b border-gray-100">
+                      <span className="py-1">売上</span>
+                      <span className="py-1 text-blue-600 border-b-[1.5px] border-blue-600">費用</span>
+                      <span className="py-1">仕入</span>
+                      <span className="py-1">帳票</span>
+                    </div>
+
+                    {/* 擬似テーブルエリア */}
+                    <div className="flex-1 bg-gray-50/80 p-2">
+                      <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden text-[8px]">
+                        
+                        {/* テーブルヘッダー */}
+                        <div className="grid grid-cols-4 border-b border-gray-200 bg-[#f8fafc] text-center">
+                          <div className="p-1 border-r border-gray-200 text-gray-600 font-bold flex items-center justify-center">発生月</div>
+                          <div className="p-1 border-r border-gray-200 text-blue-600 font-bold leading-tight">
+                            家賃<br/><span className="text-[6px] text-gray-500 font-normal">地代家賃</span>
+                          </div>
+                          <div className="p-1 border-r border-gray-200 text-blue-600 font-bold leading-tight">
+                            光熱費<br/><span className="text-[6px] text-gray-500 font-normal">水道光熱費</span>
+                          </div>
+                          <div className="p-1 text-blue-600 font-bold leading-tight">
+                            通信費<br/><span className="text-[6px] text-gray-500 font-normal">通信費</span>
+                          </div>
+                        </div>
+
+                        {/* テーブル行 1月 */}
+                        <div className="grid grid-cols-4 border-b border-gray-100 text-right font-mono">
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-center text-gray-600 font-sans">1月</div>
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-gray-500">[80,000]</div>
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-gray-500">[4,320]</div>
+                          <div className="py-1 px-1.5 text-gray-500">[5,500]</div>
+                        </div>
+
+                        {/* テーブル行 2月 */}
+                        <div className="grid grid-cols-4 border-b border-gray-100 text-right font-mono">
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-center text-gray-600 font-sans">2月</div>
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-gray-500">[80,000]</div>
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-gray-500">[2,390]</div>
+                          <div className="py-1 px-1.5 text-gray-500">[5,500]</div>
+                        </div>
+
+                         {/* テーブル行 3月 */}
+                        <div className="grid grid-cols-4 text-right font-mono bg-gray-50/50">
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-center text-gray-600 font-sans">3月</div>
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-gray-500">[80,000]</div>
+                          <div className="py-1 px-1.5 border-r border-gray-100 text-gray-500">[3,150]</div>
+                          <div className="py-1 px-1.5 text-gray-500">[5,500]</div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
                   
                   {/* ホバー時に浮かび上がる案内 */}
                   {!isMaintenanceMode && (
                     <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
-                      <span className="bg-gray-800/80 text-white text-[11px] font-bold px-4 py-2 rounded-full shadow-sm flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      <span className="bg-gray-800/90 text-white text-[11px] font-bold px-5 py-2.5 rounded-full shadow-xl flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
                         </svg>
