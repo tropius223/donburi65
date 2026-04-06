@@ -99,6 +99,8 @@ export const LoginScreen: React.FC = () => {
   }, []);
 
   const handleLoginClick = () => {
+    // メンテナンス中はクリックを無効化
+    if (isMaintenanceMode) return;
     setError(null);
     login();
   };
@@ -121,7 +123,7 @@ export const LoginScreen: React.FC = () => {
 
       <div className="font-noto bg-mesh min-h-screen flex items-center justify-center p-4 relative">
         
-        {/* 初見ユーザー向け：LPへの導線を上部に配置（絶対に目に入る位置） */}
+        {/* 初見ユーザー向け：LPへの導線を上部に配置 */}
         <div className="absolute top-4 right-4 md:top-6 md:right-8">
           <a href="landing_page.html" className="flex items-center gap-1.5 px-4 py-2 bg-white/60 backdrop-blur-sm border border-orange-100 rounded-full text-xs font-bold text-orange-600 hover:bg-orange-50 transition-colors shadow-sm">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +140,7 @@ export const LoginScreen: React.FC = () => {
               <span className="text-3xl font-black text-orange-600">65</span>
             </div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">どんぶり帳簿</h1>
-            <p className="text-gray-500 text-sm mt-2">副業の65万円控除を、もっと手軽に。</p>
+            <p className="text-gray-500 text-sm mt-2">売上300万未満の65万円控除を、もっと手軽に。</p>
           </div>
 
           {/* ログインカード */}
@@ -152,25 +154,76 @@ export const LoginScreen: React.FC = () => {
 
             {showContent ? (
               <div id="auth-container">
-                {/* コピーライティングを「具体的なメリット」に変更 */}
+                {/* コピーライティング */}
                 <h2 className="text-xl font-bold text-gray-800 mb-2 text-center leading-snug">
-                  完全無料。<br />
-                  副業の帳簿はこれだけで終わり。
+                  基本操作無料。<br />
+                  元手なしのビジネスにピッタリの帳簿。
                 </h2>
                 <p className="text-gray-400 text-[11px] text-center mb-6 leading-relaxed">
-                  銀行連携なし・手入力だから情報漏洩リスクゼロ。<br />
-                  必要な機能だけを備えたシンプルな帳簿アプリです。
+                  通帳との帳尻合わせ不要。<br />
+                  事業の取引だけを入力するシンプルな帳簿です。
                 </p>
 
-                {/* プレビュー画像配置エリア（超重要：あるとないとでCVRが変わります） */}
-                {/* TODO: src="preview.png" の部分に実際の画面スクショを保存して指定してください */}
-                <div className="mb-6 w-full h-32 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center overflow-hidden">
-                  <span className="text-gray-300 text-xs font-bold">ここにアプリ画面の画像を配置</span>
-                  {/* <img src="preview.png" alt="アプリ画面プレビュー" className="object-cover w-full h-full opacity-90" /> */}
+                {/* ログインボタン（プレビュー画像の上に配置） */}
+                {isMaintenanceMode ? (
+                  <div className="bg-yellow-50 rounded-2xl p-6 border border-yellow-200 text-center mb-6">
+                    <div className="text-yellow-500 mb-3 flex justify-center">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                      </svg>
+                    </div>
+                    <h3 className="font-bold text-yellow-800 mb-2">メンテナンス中</h3>
+                    <p className="text-xs text-yellow-700 leading-relaxed whitespace-pre-wrap">
+                      {maintenanceMessage}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="relative mb-6">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-orange-400 text-white text-[10px] font-bold px-4 py-1 rounded-full shadow-sm z-10 whitespace-nowrap">
+                      ＼ 初期設定なし・10秒で開始 ／
+                    </div>
+                    <button 
+                      onClick={handleLoginClick}
+                      className="w-full flex items-center justify-center gap-4 px-6 py-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-orange-300 hover:bg-orange-50/50 transition-all font-bold text-gray-700 shadow-sm relative overflow-hidden group"
+                    >
+                      <svg className="w-5 h-5 z-10" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                      <span className="z-10">Googleでログイン</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* クリック可能なプレビュー画像 */}
+                <div 
+                  onClick={handleLoginClick}
+                  className={`mb-6 w-full h-32 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center overflow-hidden relative ${!isMaintenanceMode ? 'cursor-pointer hover:shadow-lg hover:border-orange-200 transition-all duration-300 group' : 'opacity-70'}`}
+                  title={!isMaintenanceMode ? "クリックしてログイン" : ""}
+                >
+                  <img 
+                    src="src/assets/app-main-view.png" 
+                    alt="アプリ画面プレビュー" 
+                    className={`object-cover w-full h-full opacity-90 ${!isMaintenanceMode ? 'group-hover:scale-105 transition-transform duration-500' : ''}`} 
+                  /> 
+                  
+                  {/* ホバー時に浮かび上がる案内 */}
+                  {!isMaintenanceMode && (
+                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
+                      <span className="bg-gray-800/80 text-white text-[11px] font-bold px-4 py-2 rounded-full shadow-sm flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+                        </svg>
+                        クリックしてはじめる
+                      </span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-6">
-                  {/* 特徴スロット（アイコンの色を少し柔らかく調整） */}
+                  {/* 特徴スロット */}
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     <div className="text-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
                       <div className="text-gray-600 mb-1 flex justify-center">
@@ -197,40 +250,6 @@ export const LoginScreen: React.FC = () => {
                       <span className="text-[9px] font-bold text-gray-600">e-Tax対応</span>
                     </div>
                   </div>
-
-                  {/* メンテナンスモード判定 */}
-                  {isMaintenanceMode ? (
-                    <div className="bg-yellow-50 rounded-2xl p-6 border border-yellow-200 text-center">
-                      <div className="text-yellow-500 mb-3 flex justify-center">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                      </div>
-                      <h3 className="font-bold text-yellow-800 mb-2">メンテナンス中</h3>
-                      <p className="text-xs text-yellow-700 leading-relaxed whitespace-pre-wrap">
-                        {maintenanceMessage}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="relative mt-8">
-                      {/* マイクロコピー：ボタンを押す直前の安心感 */}
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-orange-400 text-white text-[10px] font-bold px-4 py-1 rounded-full shadow-sm z-10 whitespace-nowrap">
-                        ＼ 初期設定なし・30秒で開始 ／
-                      </div>
-                      <button 
-                        onClick={handleLoginClick}
-                        className="w-full flex items-center justify-center gap-4 px-6 py-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-orange-300 hover:bg-orange-50/50 transition-all font-bold text-gray-700 shadow-sm relative overflow-hidden group"
-                      >
-                        <svg className="w-5 h-5 z-10" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        <span className="z-10">Googleでログイン</span>
-                      </button>
-                    </div>
-                  )}
 
                   {/* セキュリティ通知 */}
                   <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex gap-3 mt-4">
