@@ -3,6 +3,7 @@ import ReactGA from 'react-ga4';
 import { initGoogleApi, login, loadAppData, tryRestoreSession } from '../../api/drive';
 import { useStore } from '../../hooks/useStore';
 import type { AppData } from '../../types';
+import appMainViewImg from '../../assets/app-main-view.png';
 
 export const LoginScreen: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -156,12 +157,12 @@ export const LoginScreen: React.FC = () => {
               <div id="auth-container">
                 {/* コピーライティング */}
                 <h2 className="text-xl font-bold text-gray-800 mb-2 text-center leading-snug">
-                  基本操作無料。<br />
-                  元手なしのビジネスにピッタリの帳簿。
+                  基本操作無料<br />
+                  元手なしのビジネスにピッタリの帳簿
                 </h2>
                 <p className="text-gray-400 text-[11px] text-center mb-6 leading-relaxed">
-                  通帳との帳尻合わせ不要。<br />
-                  事業の取引だけを入力するシンプルな帳簿です。
+                  通帳との帳尻合わせ不要<br />
+                  事業の取引だけを入力するシンプルな帳簿です
                 </p>
 
                 {/* ログインボタン（プレビュー画像の上に配置） */}
@@ -204,10 +205,10 @@ export const LoginScreen: React.FC = () => {
                   title={!isMaintenanceMode ? "クリックしてログイン" : ""}
                 >
                   <img 
-                    src="src/assets/app-main-view.png" 
+                    src={appMainViewImg} 
                     alt="アプリ画面プレビュー" 
                     className={`object-cover w-full h-full opacity-90 ${!isMaintenanceMode ? 'group-hover:scale-105 transition-transform duration-500' : ''}`} 
-                  /> 
+                  />
                   
                   {/* ホバー時に浮かび上がる案内 */}
                   {!isMaintenanceMode && (
