@@ -119,19 +119,30 @@ export const LoginScreen: React.FC = () => {
         }
       `}</style>
 
-      <div className="font-noto bg-mesh min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
+      <div className="font-noto bg-mesh min-h-screen flex items-center justify-center p-4 relative">
+        
+        {/* 初見ユーザー向け：LPへの導線を上部に配置（絶対に目に入る位置） */}
+        <div className="absolute top-4 right-4 md:top-6 md:right-8">
+          <a href="landing_page.html" className="flex items-center gap-1.5 px-4 py-2 bg-white/60 backdrop-blur-sm border border-orange-100 rounded-full text-xs font-bold text-orange-600 hover:bg-orange-50 transition-colors shadow-sm">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            どんぶり帳簿とは？
+          </a>
+        </div>
+
+        <div className="max-w-md w-full mt-10 md:mt-0">
           {/* ロゴエリア */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-sm border border-orange-100 mb-4 overflow-hidden">
               <span className="text-3xl font-black text-orange-600">65</span>
             </div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">どんぶり帳簿</h1>
-            <p className="text-gray-500 text-sm mt-2">副業の65万円控除を、もっと身近に。</p>
+            <p className="text-gray-500 text-sm mt-2">副業の65万円控除を、もっと手軽に。</p>
           </div>
 
           {/* ログインカード */}
-          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-orange-900/10 border border-gray-100 p-8 md:p-10">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-orange-900/10 border border-gray-100 p-8 md:p-10 relative overflow-hidden">
             
             {error && !isLoadingData && (
               <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 text-left rounded shadow-sm">
@@ -141,35 +152,49 @@ export const LoginScreen: React.FC = () => {
 
             {showContent ? (
               <div id="auth-container">
-                <h2 className="text-xl font-bold text-gray-800 mb-2 text-center">副業で差をつけるあなたへ</h2>
-                <p className="text-gray-400 text-xs text-center mb-8">元手なしのビジネスに最適な、必要最小限で低価格な帳簿</p>
+                {/* コピーライティングを「具体的なメリット」に変更 */}
+                <h2 className="text-xl font-bold text-gray-800 mb-2 text-center leading-snug">
+                  完全無料。<br />
+                  副業の帳簿はこれだけで終わり。
+                </h2>
+                <p className="text-gray-400 text-[11px] text-center mb-6 leading-relaxed">
+                  銀行連携なし・手入力だから情報漏洩リスクゼロ。<br />
+                  必要な機能だけを備えたシンプルな帳簿アプリです。
+                </p>
+
+                {/* プレビュー画像配置エリア（超重要：あるとないとでCVRが変わります） */}
+                {/* TODO: src="preview.png" の部分に実際の画面スクショを保存して指定してください */}
+                <div className="mb-6 w-full h-32 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center overflow-hidden">
+                  <span className="text-gray-300 text-xs font-bold">ここにアプリ画面の画像を配置</span>
+                  {/* <img src="preview.png" alt="アプリ画面プレビュー" className="object-cover w-full h-full opacity-90" /> */}
+                </div>
                 
                 <div className="space-y-6">
-                  {/* 特徴スロット */}
-                  <div className="grid grid-cols-3 gap-2 mb-4">
+                  {/* 特徴スロット（アイコンの色を少し柔らかく調整） */}
+                  <div className="grid grid-cols-3 gap-2 mb-2">
                     <div className="text-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
-                      <div className="text-orange-500 mb-1 flex justify-center">
+                      <div className="text-gray-600 mb-1 flex justify-center">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002-2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002-2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
                       </div>
-                      <span className="text-[9px] font-bold text-gray-500">データ非保持</span>
+                      <span className="text-[9px] font-bold text-gray-600">データ非保持</span>
                     </div>
                     <div className="text-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
                       <div className="text-blue-500 mb-1 flex justify-center">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
                         </svg>
                       </div>
-                      <span className="text-[9px] font-bold text-gray-500">Drive保存</span>
+                      <span className="text-[9px] font-bold text-gray-600">Drive保存</span>
                     </div>
                     <div className="text-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
                       <div className="text-green-500 mb-1 flex justify-center">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                       </div>
-                      <span className="text-[9px] font-bold text-gray-500">e-Tax対応</span>
+                      <span className="text-[9px] font-bold text-gray-600">e-Tax対応</span>
                     </div>
                   </div>
 
@@ -187,38 +212,44 @@ export const LoginScreen: React.FC = () => {
                       </p>
                     </div>
                   ) : (
-                    <button 
-                      onClick={handleLoginClick}
-                      className="w-full flex items-center justify-center gap-4 px-6 py-4 bg-white border border-gray-300 rounded-2xl hover:bg-gray-50 transition-all font-bold text-gray-700 shadow-sm group"
-                    >
-                      <svg className="w-5 h-5" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                      </svg>
-                      Googleでログイン
-                    </button>
+                    <div className="relative mt-8">
+                      {/* マイクロコピー：ボタンを押す直前の安心感 */}
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-orange-400 text-white text-[10px] font-bold px-4 py-1 rounded-full shadow-sm z-10 whitespace-nowrap">
+                        ＼ 初期設定なし・30秒で開始 ／
+                      </div>
+                      <button 
+                        onClick={handleLoginClick}
+                        className="w-full flex items-center justify-center gap-4 px-6 py-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-orange-300 hover:bg-orange-50/50 transition-all font-bold text-gray-700 shadow-sm relative overflow-hidden group"
+                      >
+                        <svg className="w-5 h-5 z-10" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span className="z-10">Googleでログイン</span>
+                      </button>
+                    </div>
                   )}
 
                   {/* セキュリティ通知 */}
-                  <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100 flex gap-3">
-                    <div className="shrink-0 text-orange-400">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex gap-3 mt-4">
+                    <div className="shrink-0 text-gray-400 mt-0.5">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
                       </svg>
                     </div>
-                    <p className="text-[11px] text-orange-800 leading-relaxed">
-                      <span className="font-bold">プライバシー保護:</span><br />
-                      運営者があなたの帳簿を閲覧・保存することはありません。すべてはあなたのDrive内で完結します。
+                    <p className="text-[10px] text-gray-500 leading-relaxed">
+                      <span className="font-bold text-gray-700">プライバシー保護:</span><br />
+                      運営者があなたのデータを閲覧・保存することはありません。すべてはあなたのGoogle Drive内で完結・保管されます。
                     </p>
                   </div>
 
                   {/* 同意事項 */}
                   <div className="pt-2 text-center">
-                    <p className="text-[10px] text-gray-400 leading-loose">
+                    <p className="text-[9px] text-gray-400 leading-loose">
                       サインインすることで、どんぶり帳簿の<br />
-                      <a href="terms.html" className="text-orange-600 font-bold hover:underline">利用規約</a>および<a href="precautions.html" className="text-orange-600 font-bold hover:underline">注意事項</a>に同意したものとみなされます。
+                      <a href="terms.html" className="text-orange-500 font-bold hover:underline">利用規約</a>および<a href="precautions.html" className="text-orange-500 font-bold hover:underline">注意事項</a>に同意したものとみなされます。
                     </p>
                   </div>
                 </div>
@@ -232,30 +263,24 @@ export const LoginScreen: React.FC = () => {
                 <p className="text-gray-500 font-bold text-sm">
                   {isLoadingData ? 'データを同期しています...' : 'サインイン情報を確認中...'}
                 </p>
-                <p className="text-gray-300 text-[10px] mt-2">あなたのGoogle Driveを確認中</p>
+                <p className="text-gray-400 text-[10px] mt-2">あなたのGoogle Driveを確認中</p>
               </div>
             )}
             
           </div>
 
           {/* サポート・外部リンク */}
-          <div className="mt-10 flex flex-col items-center gap-6">
-            <div className="flex justify-center gap-8 text-xs text-gray-400 font-medium">
-              <a href="landing_page.html" className="hover:text-orange-600 transition flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                LPに戻る
-              </a>
+          <div className="mt-8 flex flex-col items-center gap-6">
+            <div className="flex justify-center gap-8 text-xs text-gray-500 font-medium">
               <a href="manual.html" className="hover:text-orange-600 transition flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                 </svg>
                 操作マニュアル
               </a>
             </div>
             
-            <p className="text-[10px] text-gray-300 italic">
+            <p className="text-[10px] text-gray-400">
               &copy; {new Date().getFullYear()} どんぶり帳簿 All rights reserved.
             </p>
           </div>
