@@ -3,7 +3,6 @@ import ReactGA from 'react-ga4';
 import { initGoogleApi, login, loadAppData, tryRestoreSession } from '../../api/drive';
 import { useStore } from '../../hooks/useStore';
 import type { AppData } from '../../types';
-import appMainViewImg from '../../assets/app-main-view.png';
 
 export const LoginScreen: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
