@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { ExpenseColumn } from '../../types';
 
+// 選択可能な勘定科目のリスト
 const ACCOUNT_CATEGORIES = [
   '租税公課', '荷造運賃', '水道光熱費', '旅費交通費', '通信費', 
   '広告宣伝費', '接待交際費', '損害保険料', '修繕費', '消耗品費', 
@@ -267,8 +268,8 @@ const ExpenseCell: React.FC<{
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // スペースキーが押されたら日別ポップアップを開く
-    if (e.key === ' ') {
+    // スペースキー（半角・全角問わず）が押されたら日別ポップアップを開く
+    if (e.key === ' ' || e.key === '　' || e.code === 'Space') {
       e.preventDefault();
       onOpenModal();
       return;
@@ -352,8 +353,8 @@ const ExpenseCell: React.FC<{
           title={hasDetails ? '日別明細が存在します。編集は(日別)ボタンから行ってください。' : ''}
         />
         {col.isApportioned && amount !== '' && amount !== 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-blue-700 opacity-0 group-hover:opacity-100 pointer-events-none">
-            {apportioned.toLocaleString()}
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-blue-700 opacity-0 group-hover:opacity-100 pointer-events-none bg-white/90">
+            按分後 {apportioned.toLocaleString()}
           </div>
         )}
       </div>
