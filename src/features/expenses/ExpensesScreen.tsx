@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../hooks/useStore';
-import type { Expense, ExpenseColumn } from '../../types';
+import type { ExpenseColumn } from '../../types';
 
 // 選択可能な勘定科目のリスト
 const ACCOUNT_CATEGORIES = [
@@ -10,7 +10,6 @@ const ACCOUNT_CATEGORIES = [
   '地代家賃', '貸倒金', '雑費'
 ];
 
-// 初期設定の列
 const DEFAULT_EXPENSE_COLUMNS: ExpenseColumn[] = [
   { label: '家賃', category: '地代家賃', isApportioned: true },
   { label: '光熱費', category: '水道光熱費', isApportioned: true },
@@ -19,7 +18,6 @@ const DEFAULT_EXPENSE_COLUMNS: ExpenseColumn[] = [
   { label: '10万未満PC購入', category: '消耗品費', isApportioned: false },
 ];
 
-// 編集可能な列ヘッダーコンポーネント
 const ColumnHeader = ({ 
   col, 
   onUpdate,
@@ -90,14 +88,139 @@ const ColumnHeader = ({
   );
 };
 
+// 日別明細の入力モーダルコンポーネント
+const ExpenseDetailsModal = ({ target, onClose, onSave, currentYear }: any) => {
+  const [details, setDetails] = useState<{id: string, date: string, amount: number}[]>(target.expense?.details || []);
+  const [newDate, setNewDate] = useState('');
+  const [newAmount, setNewAmount] = useState<number | ''>('');
+
+  const monthStr = String(target.month).padStart(2, '0');
+  const lastDay = new Date(parseInt(currentYear), target.month, 0).getDate();
+  const minDate = `${currentYear}-${monthStr}-01`;
+  const maxDate = `${currentYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+
+  const total = details.reduce((sum, d) => sum + d.amount, 0);
+
+  const handleAdd = () => {
+    if (!newDate || newAmount === '') return;
+    setDetails([...details, { id: crypto.randomUUID(), date: newDate, amount: Number(newAmount) }]);
+    setNewDate('');
+    setNewAmount('');
+  };
+
+  const handleDelete = (id: string) => {
+    setDetails(details.filter(d => d.id !== id));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+          <h3 className="font-bold text-gray-800">{target.month}月 - {target.col.label} の日別明細</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="p-6 overflow-y-auto flex-1">
+          <div className="flex gap-3 mb-6 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-gray-600 mb-1">発生日</label>
+              <input 
+                type="date" min={minDate} max={maxDate} 
+                value={newDate} onChange={e => setNewDate(e.target.value)} onKeyDown={handleKeyDown}
+                className="w-full border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm p-2" 
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-gray-600 mb-1">金額 (円)</label>
+              <input 
+                type="number" value={newAmount} onChange={e => setNewAmount(parseInt(e.target.value) || '')} onKeyDown={handleKeyDown}
+                className="w-full border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm p-2 text-right" placeholder="0" 
+              />
+            </div>
+            <div className="flex items-end">
+              <button 
+                onClick={handleAdd} disabled={!newDate || newAmount === ''} 
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold disabled:bg-blue-300 transition-colors shadow-sm"
+              >
+                追加
+              </button>
+            </div>
+          </div>
+
+          <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md overflow-hidden">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">発生日</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">金額 (円)</th>
+                <th className="px-4 py-2 w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {details.sort((a,b) => a.date.localeCompare(b.date)).map(d => (
+                <tr key={d.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 text-sm text-gray-800">{d.date}</td>
+                  <td className="px-4 py-2 text-sm text-right font-medium text-gray-800">{d.amount.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-center">
+                    <button onClick={() => handleDelete(d.id)} className="text-gray-400 hover:text-red-500 transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {details.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-8 text-center text-sm text-gray-400">
+                    明細はありません。<br/>(空のまま保存すると月まとめ入力に戻ります)
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot className="bg-blue-50/50 border-t border-blue-100">
+              <tr>
+                <td className="px-4 py-3 font-bold text-sm text-blue-900">合計金額</td>
+                <td className="px-4 py-3 font-bold text-base text-right text-blue-700">{total.toLocaleString()}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors shadow-sm">
+            キャンセル
+          </button>
+          <button onClick={() => onSave(target.month, target.col.label, target.col.category, target.col.isApportioned, details)} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow-sm">
+            保存して反映
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ExpenseCell: React.FC<{
   month: number;
   colIndex: number;
   col: ExpenseColumn;
-  amount: number | '';
+  expense: any;
   apportionRate: number;
   onAmountChange: (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, value: string) => void;
-}> = ({ month, colIndex, col, amount, apportionRate, onAmountChange }) => {
+  onOpenModal: () => void;
+}> = ({ month, colIndex, col, expense, apportionRate, onAmountChange, onOpenModal }) => {
+  const amount = expense?.amount ?? '';
+  const hasDetails = expense?.details && expense.details.length > 0;
+  
   const [display, setDisplay] = useState('');
 
   useEffect(() => {
@@ -110,7 +233,7 @@ const ExpenseCell: React.FC<{
   }, [amount, col.isApportioned]);
 
   const handleFocus = () => {
-    if (!display) return;
+    if (hasDetails || !display) return;
     const raw = display.replace(/[^0-9]/g, '');
     if (raw) {
       setDisplay(parseInt(raw, 10).toLocaleString());
@@ -120,6 +243,7 @@ const ExpenseCell: React.FC<{
   };
 
   const handleBlur = () => {
+    if (hasDetails) return;
     const raw = display.replace(/[^0-9]/g, '');
     const num = parseInt(raw, 10) || 0;
     
@@ -133,6 +257,7 @@ const ExpenseCell: React.FC<{
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (hasDetails) return;
     const raw = e.target.value.replace(/[^0-9]/g, '');
     if (!raw) {
       setDisplay('');
@@ -143,6 +268,14 @@ const ExpenseCell: React.FC<{
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // スペースキーが押されたら日別ポップアップを開く
+    if (e.key === ' ') {
+      e.preventDefault();
+      onOpenModal();
+      return;
+    }
+
+    if (hasDetails) return;
     const target = e.currentTarget;
     const selectionStart = target.selectionStart;
     const selectionEnd = target.selectionEnd;
@@ -190,21 +323,34 @@ const ExpenseCell: React.FC<{
 
   const apportioned = col.isApportioned && amount !== '' ? Math.floor(Number(amount) * apportionRate) : 0;
   const cellBorder = col.isApportioned ? 'border-blue-300' : 'border-gray-200';
+  const bgColor = hasDetails ? 'bg-gray-100' : 'bg-transparent';
+  const textColor = hasDetails ? 'text-gray-500 font-bold' : 'text-gray-900';
 
   return (
-    <td className={`border-b border-r ${cellBorder} p-0`}>
-      <div className="relative group">
+    <td className={`border-b border-r ${cellBorder} p-0 relative group`}>
+      <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <button
+          type="button"
+          onClick={onOpenModal}
+          className="bg-white border border-blue-200 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm hover:bg-blue-50 transition-colors"
+        >
+          (日別)
+        </button>
+      </div>
+      <div className="relative w-full h-full">
         <input
           id={`expense-input-${colIndex}-${month}`}
           type="text"
           inputMode="numeric"
-          className="w-full border-0 bg-transparent py-3 px-2 text-right text-sm focus:ring-2 focus:ring-inset focus:ring-blue-500"
+          readOnly={hasDetails}
+          className={`w-full border-0 ${bgColor} py-3 px-2 text-right text-sm focus:ring-2 focus:ring-inset focus:ring-blue-500 ${textColor}`}
           value={display}
           onFocus={handleFocus}
           onBlur={handleBlur}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="0"
+          placeholder={hasDetails ? '' : '0'}
+          title={hasDetails ? '日別明細が存在します。編集は(日別)ボタンから行ってください。' : ''}
         />
         {col.isApportioned && amount !== '' && amount !== 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-blue-700 opacity-0 group-hover:opacity-100 pointer-events-none">
@@ -223,6 +369,7 @@ export const ExpensesScreen: React.FC = () => {
   const currentYear = useStore((state) => state.currentYear);
 
   const [rateInput, setRateInput] = useState<string>('100');
+  const [modalTarget, setModalTarget] = useState<{ month: number; col: ExpenseColumn; expense?: any } | null>(null);
 
   useEffect(() => {
     if (currentYearData) {
@@ -312,6 +459,7 @@ export const ExpensesScreen: React.FC = () => {
     });
   };
 
+  // 直接入力（月まとめ）の更新処理
   const handleUpdateAmount = (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, value: string) => {
     if (!appData) return;
 
@@ -322,21 +470,20 @@ export const ExpensesScreen: React.FC = () => {
     const index = newExpenses.findIndex((e) => e.month === month && e.colLabel === colLabel);
 
     if (index > -1) {
-      if (amount === 0) {
+      if (amount === 0 && (!newExpenses[index].details || newExpenses[index].details.length === 0)) {
         newExpenses.splice(index, 1);
       } else {
-        newExpenses[index] = { ...newExpenses[index], amount, colLabel, category: colCategory };
+        newExpenses[index] = { ...newExpenses[index], amount, colLabel, category: colCategory, isApportioned: colIsApportioned };
       }
     } else if (amount > 0) {
-      const newExpense: Expense = {
+      newExpenses.push({
         id: crypto.randomUUID(),
         month,
         colLabel,
         category: colCategory,
         amount,
         isApportioned: colIsApportioned,
-      };
-      newExpenses.push(newExpense);
+      });
     }
 
     setAppData({
@@ -349,6 +496,46 @@ export const ExpensesScreen: React.FC = () => {
         },
       },
     });
+  };
+
+  // 日別明細モーダルからの保存処理
+  const handleSaveDetails = (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, details: any[]) => {
+    if (!appData) return;
+    const yearData = appData.years[currentYear];
+    let newExpenses = [...expenses];
+    const index = newExpenses.findIndex((e) => e.month === month && e.colLabel === colLabel);
+    
+    const totalAmount = details.reduce((sum, d) => sum + d.amount, 0);
+
+    if (index > -1) {
+      if (totalAmount === 0 && details.length === 0) {
+        newExpenses.splice(index, 1); // 明細がなくなり合計も0なら削除して直接入力に戻す
+      } else {
+        newExpenses[index] = { ...newExpenses[index], amount: totalAmount, details, category: colCategory, isApportioned: colIsApportioned };
+      }
+    } else if (details.length > 0 || totalAmount > 0) {
+      newExpenses.push({
+        id: crypto.randomUUID(),
+        month,
+        colLabel,
+        category: colCategory,
+        amount: totalAmount,
+        isApportioned: colIsApportioned,
+        details,
+      });
+    }
+
+    setAppData({
+      ...appData,
+      years: {
+        ...appData.years,
+        [currentYear]: {
+          ...yearData,
+          expenses: newExpenses,
+        },
+      },
+    });
+    setModalTarget(null);
   };
 
   const handleRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -387,9 +574,8 @@ export const ExpensesScreen: React.FC = () => {
     }
   };
 
-  const getAmount = (month: number, label: string) => {
-    const expense = expenses.find((e) => e.month === month && e.colLabel === label);
-    return expense ? expense.amount : '';
+  const getExpense = (month: number, label: string) => {
+    return expenses.find((e) => e.month === month && e.colLabel === label);
   };
 
   const getColumnTotal = (label: string) => {
@@ -406,6 +592,15 @@ export const ExpensesScreen: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {modalTarget && (
+        <ExpenseDetailsModal
+          target={modalTarget}
+          currentYear={currentYear}
+          onClose={() => setModalTarget(null)}
+          onSave={handleSaveDetails}
+        />
+      )}
+
       <div className="bg-white shadow sm:rounded-lg p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg leading-6 font-medium text-gray-900">事業用按分比率</h3>
@@ -432,7 +627,8 @@ export const ExpensesScreen: React.FC = () => {
           <div>
             <h3 className="text-lg leading-6 font-medium text-gray-900">費用帳</h3>
             <p className="mt-1 text-sm text-gray-500">
-              列名・科目・按分の有無を自由に変更できます。下のセルに金額を入力してください。
+              列名・科目・按分の有無を自由に変更できます。下のセルに金額を入力してください。<br/>
+              セルにカーソルを合わせると表示される「(日別)」ボタンから、日付ごとの詳細な記帳も可能です。
             </p>
           </div>
           <div className="text-right">
@@ -447,7 +643,6 @@ export const ExpensesScreen: React.FC = () => {
           <table className="min-w-full border-collapse">
             <thead>
               <tr className="bg-gray-100">
-                {/* 修正箇所: z-10 を z-[5] に変更 */}
                 <th className="sticky left-0 z-[5] bg-gray-100 border-b border-r border-gray-300 p-2 text-sm font-bold text-gray-700 w-20 align-middle text-center">
                   発生月
                 </th>
@@ -475,7 +670,6 @@ export const ExpensesScreen: React.FC = () => {
             <tbody>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
                 <tr key={month} className="hover:bg-blue-50/30 transition-colors">
-                  {/* 修正箇所: z-10 を z-[5] に変更し背景色 bg-white を適用 */}
                   <td className="sticky left-0 z-[5] bg-white border-b border-r border-gray-200 p-2 text-sm font-medium text-gray-700 text-center">
                     {month}月
                   </td>
@@ -485,9 +679,10 @@ export const ExpensesScreen: React.FC = () => {
                       month={month}
                       colIndex={idx}
                       col={col}
-                      amount={getAmount(month, col.label)}
+                      expense={getExpense(month, col.label)}
                       apportionRate={rate}
                       onAmountChange={handleUpdateAmount}
+                      onOpenModal={() => setModalTarget({ month, col, expense: getExpense(month, col.label) })}
                     />
                   ))}
                   <td className="border-b border-r border-gray-200 bg-gray-50/30"></td>
@@ -499,7 +694,6 @@ export const ExpensesScreen: React.FC = () => {
             </tbody>
             <tfoot>
               <tr className="bg-gray-100 font-bold">
-                {/* 修正箇所: z-10 を z-[5] に変更 */}
                 <td className="sticky left-0 z-[5] bg-gray-100 border-r border-gray-300 p-2 text-center text-sm text-gray-700">
                   合計
                 </td>

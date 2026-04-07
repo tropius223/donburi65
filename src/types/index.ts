@@ -16,6 +16,12 @@ export interface Sale {
   client: string; // 売上先
 }
 
+export interface ExpenseDetail {
+  id: string;
+  date: string;
+  amount: number;
+}
+
 export interface Expense {
   id: string;
   month: number; // 発生月 (1-12)
@@ -23,6 +29,7 @@ export interface Expense {
   category: string; // 勘定科目 (例: 地代家賃)
   amount: number; // 金額
   isApportioned: boolean; // 按分有無
+  details?: ExpenseDetail[]; // 日別明細データ
 }
 
 export interface Purchase {
