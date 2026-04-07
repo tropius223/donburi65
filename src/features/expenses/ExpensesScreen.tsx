@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { ExpenseColumn } from '../../types';
 
-// 選択可能な勘定科目のリスト
 const ACCOUNT_CATEGORIES = [
   '租税公課', '荷造運賃', '水道光熱費', '旅費交通費', '通信費', 
   '広告宣伝費', '接待交際費', '損害保険料', '修繕費', '消耗品費', 

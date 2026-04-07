@@ -6,7 +6,6 @@ const DEV_SKIP_SUBSCRIPTION_CHECK = true;
 
 export const ReportsScreen = () => {
   const userEmail = useStore((state) => state.userEmail);
-  // 修正：アンチパターンを解消
   const appData = useStore((state) => state.appData);
   const currentYear = useStore((state) => state.currentYear);
   const currentYearData = appData?.years[currentYear];
@@ -179,22 +178,44 @@ export const ReportsScreen = () => {
       });
     });
 
+    // 月まとめの末日を取得する関数
     const getEndOfMonth = (year: string, month: number) => {
       const d = new Date(parseInt(year), month, 0);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
+
+    // 費用の仕訳生成ロジックの修正
     currentYearData.expenses.forEach((e: any) => {
-      const apportioned = calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate);
-      if (apportioned > 0) {
-        journal.push({
-          id: `expense-${e.id}`,
-          date: getEndOfMonth(currentYear, e.month),
-          debitAccount: e.category,
-          debitAmount: apportioned,
-          creditAccount: '事業主貸',
-          creditAmount: apportioned,
-          memo: e.colLabel || e.category
+      // 日別明細が存在する場合は、発生日ごとに個別の仕訳を作成する
+      if (e.details && e.details.length > 0) {
+        e.details.forEach((detail: any) => {
+          const apportioned = calculateApportionedExpense(detail.amount, e.isApportioned, currentYearData.apportionRate);
+          if (apportioned > 0) {
+            journal.push({
+              id: `expense-${e.id}-${detail.id}`,
+              date: detail.date, // 日別明細の発生日を使用
+              debitAccount: e.category,
+              debitAmount: apportioned,
+              creditAccount: '事業主貸',
+              creditAmount: apportioned,
+              memo: e.colLabel || e.category
+            });
+          }
         });
+      } else {
+        // 日別明細がない場合は、従来通り月まとめで末日に仕訳を作成する
+        const apportioned = calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate);
+        if (apportioned > 0) {
+          journal.push({
+            id: `expense-${e.id}`,
+            date: getEndOfMonth(currentYear, e.month),
+            debitAccount: e.category,
+            debitAmount: apportioned,
+            creditAccount: '事業主貸',
+            creditAmount: apportioned,
+            memo: e.colLabel || e.category
+          });
+        }
       }
     });
 
@@ -329,7 +350,7 @@ export const ReportsScreen = () => {
     }
 
     return { entries: journal, ledgerMap: map };
-  }, [currentYearData, currentYear]);
+  }, [currentYearData, currentYear, appData]);
 
   useEffect(() => {
     if (ledgerMap.size > 0 && !selectedAccount) {
