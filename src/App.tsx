@@ -18,11 +18,35 @@ function App() {
   const setCurrentYear = useStore((state) => state.setCurrentYear);
   const appData = useStore((state) => state.appData);
 
-  const [activeTab, setActiveTab] = useState('sales');
+  const validTabs = ['settings', 'sales', 'expenses', 'purchases', 'inventory', 'reports', 'blue-return'];
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return validTabs.includes(hash) ? hash : 'sales';
+  });
+
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
   const isInitialLoad = useRef(true);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (validTabs.includes(hash)) {
+        setActiveTab(hash);
+      } else if (!hash) {
+        setActiveTab('sales');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId);
+    window.location.hash = tabId;
+  };
 
   const handleLogout = () => {
     logout();
@@ -156,7 +180,7 @@ function App() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabClick(tab.id)}
                 className={`
                   whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors
                   ${activeTab === tab.id
@@ -181,7 +205,6 @@ function App() {
         {activeTab === 'settings' && <SettingsScreen />}
       </main>
 
-      {/* アプリ全体のフッターを追加 */}
       <footer className="bg-white border-t border-gray-200 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-sm text-gray-500">
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
