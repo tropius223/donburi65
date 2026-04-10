@@ -6,13 +6,18 @@ import type { YearData } from '../types';
 export const calculateApportionedExpense = (
   amount: number,
   isApportioned: boolean | string | undefined, // 古いデータの文字列混入に対応
-  apportionRate: number
+  apportionRate: number,
+  itemApportionRate?: number // 追加：費目ごとの按分率 (1-100)
 ): number => {
+  // 費目ごとの按分率（1〜100%）が設定されている場合はそれを優先
+  if (itemApportionRate !== undefined) {
+    return Math.round(amount * (itemApportionRate / 100));
+  }
   // false（ブール値）、'false'（文字列）、または未定義の場合は全額（100%）を計上
   if (isApportioned === false || isApportioned === 'false' || !isApportioned) {
     return amount;
   }
-  // true または 'true' の場合のみ、設定された按分比率を掛ける
+  // 過去データの互換性用
   return Math.round(amount * apportionRate);
 };
 
@@ -40,7 +45,7 @@ export const calculateSummary = (yearData: YearData) => {
   
   // 費用合計（按分後）
   const totalExpenses = yearData.expenses.reduce((sum: number, exp: any) => {
-    return sum + calculateApportionedExpense(exp.amount, exp.isApportioned, yearData.apportionRate);
+    return sum + calculateApportionedExpense(exp.amount, exp.isApportioned, yearData.apportionRate, exp.apportionRate);
   }, 0);
 
   // 期末在庫合計

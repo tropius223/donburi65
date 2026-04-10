@@ -85,7 +85,7 @@ export const ReportsScreen = () => {
     if (!currentYearData) return {};
     const totals: Record<string, number> = {};
     currentYearData.expenses.forEach((e: any) => {
-      const amount = calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate);
+      const amount = calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate, e.apportionRate);
       if (amount > 0) {
         totals[e.category] = (totals[e.category] || 0) + amount;
       }
@@ -189,7 +189,7 @@ export const ReportsScreen = () => {
       // 日別明細が存在する場合は、発生日ごとに個別の仕訳を作成する
       if (e.details && e.details.length > 0) {
         e.details.forEach((detail: any) => {
-          const apportioned = calculateApportionedExpense(detail.amount, e.isApportioned, currentYearData.apportionRate);
+          const apportioned = calculateApportionedExpense(detail.amount, e.isApportioned, currentYearData.apportionRate, e.apportionRate);
           if (apportioned > 0) {
             journal.push({
               id: `expense-${e.id}-${detail.id}`,
@@ -204,7 +204,7 @@ export const ReportsScreen = () => {
         });
       } else {
         // 日別明細がない場合は、従来通り月まとめで末日に仕訳を作成する
-        const apportioned = calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate);
+        const apportioned = calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate, e.apportionRate);
         if (apportioned > 0) {
           journal.push({
             id: `expense-${e.id}`,

@@ -7,7 +7,6 @@ const DEV_SKIP_SUBSCRIPTION_CHECK = true;
 
 export const BlueReturnScreen: React.FC = () => {
   const userEmail = useStore((state) => state.userEmail);
-  // 修正：アンチパターンを解消
   const appData = useStore((state) => state.appData);
   const currentYear = useStore((state) => state.currentYear);
   const currentYearData = appData?.years[currentYear];
@@ -22,7 +21,7 @@ export const BlueReturnScreen: React.FC = () => {
     if (force) setIsLoading(true);
 
     try {
-      const response = await fetch('/api/check-subscription', { // APIパスを修正
+      const response = await fetch('/api/check-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail, forceRefresh: force }),
@@ -52,7 +51,7 @@ export const BlueReturnScreen: React.FC = () => {
   const handlePurchase = async () => {
     setIsProcessingPayment(true);
     try {
-      const response = await fetch('/api/create-checkout', { // APIパスを修正
+      const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail }),
@@ -149,7 +148,7 @@ export const BlueReturnScreen: React.FC = () => {
         targetLabels.includes(e.category) || // ②categoryフィールドに列名が保存されてしまっている場合
         (e.colLabel && targetLabels.includes(e.colLabel)) // ③colLabelから逆引きできる場合
       )
-      .reduce((sum: number, e: any) => sum + calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate), 0);
+      .reduce((sum: number, e: any) => sum + calculateApportionedExpense(e.amount, e.isApportioned, currentYearData.apportionRate, e.apportionRate), 0);
   };
 
   const expenses = {
@@ -567,7 +566,7 @@ export const BlueReturnScreen: React.FC = () => {
             </div>
 
             <div className="total fixed" style={{ padding: '15px 20px' }}>
-              <div className="c-low boNo" style={{ border: 'none', padding: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="c-low boNo" style={{ border: 'none', padding: 0, display: 'flex', justify-content: 'space-between', alignItems: 'center' }}>
                 <div className="c-subject__total" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span className="item-Serial" style={{ background: '#197f4a', color: '#fff', borderColor: '#197f4a', fontWeight: 'normal' }}>43</span>

@@ -11,29 +11,34 @@ const ACCOUNT_CATEGORIES = [
 ];
 
 const DEFAULT_EXPENSE_COLUMNS: ExpenseColumn[] = [
-  { label: '家賃', category: '地代家賃', isApportioned: true },
-  { label: '光熱費', category: '水道光熱費', isApportioned: true },
-  { label: 'インターネット料金', category: '通信費', isApportioned: false },
-  { label: 'Adobe', category: '通信費', isApportioned: false },
-  { label: '10万未満PC購入', category: '消耗品費', isApportioned: false },
+  { label: '家賃', category: '地代家賃', isApportioned: true, apportionRate: 50 },
+  { label: '光熱費', category: '水道光熱費', isApportioned: true, apportionRate: 50 },
+  { label: 'インターネット料金', category: '通信費', isApportioned: false, apportionRate: 100 },
+  { label: 'Adobe', category: '通信費', isApportioned: false, apportionRate: 100 },
+  { label: '10万未満PC購入', category: '消耗品費', isApportioned: false, apportionRate: 100 },
 ];
 
 const ColumnHeader = ({ 
   col, 
   onUpdate,
-  onDelete
+  onDelete,
+  globalApportionRate
 }: { 
   col: ExpenseColumn; 
-  onUpdate: (field: keyof ExpenseColumn, value: string | boolean) => void;
+  onUpdate: (field: keyof ExpenseColumn, value: string | boolean | number) => void;
   onDelete: () => void;
+  globalApportionRate: number;
 }) => {
   const [label, setLabel] = useState(col.label);
+  const [rateInput, setRateInput] = useState(col.apportionRate ?? (col.isApportioned ? Math.round(globalApportionRate * 100) : 100));
 
   useEffect(() => {
     setLabel(col.label);
-  }, [col.label]);
+    setRateInput(col.apportionRate ?? (col.isApportioned ? Math.round(globalApportionRate * 100) : 100));
+  }, [col, globalApportionRate]);
 
-  const borderClass = col.isApportioned ? 'border-blue-300' : 'border-gray-300';
+  const currentRate = col.apportionRate ?? (col.isApportioned ? Math.round(globalApportionRate * 100) : 100);
+  const borderClass = currentRate < 100 ? 'border-blue-300' : 'border-gray-300';
 
   return (
     <th className={`border-b border-r ${borderClass} p-2 min-w-[140px] align-top bg-white relative group`}> 
@@ -70,19 +75,29 @@ const ColumnHeader = ({
           ))}
         </select>
       </div>
-      <div>
-        <select
-          value={col.isApportioned ? 'true' : 'false'}
-          onChange={(e) => onUpdate('isApportioned', e.target.value === 'true')}
-          className={`w-full text-xs rounded px-1 py-1 focus:ring-2 focus:ring-blue-500 transition-colors ${
-            col.isApportioned 
-              ? 'bg-blue-50 text-blue-700 border border-blue-300 font-medium' 
-              : 'bg-white text-gray-700 border border-gray-200'
-          }`}
-        >
-          <option value="true">按分: 有</option>
-          <option value="false">按分: 無</option>
-        </select>
+      <div className={`flex items-center justify-between mt-1 border rounded px-1.5 py-1 transition-colors ${currentRate < 100 ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'}`}>
+        <span className={`text-[10px] font-medium ${currentRate < 100 ? 'text-blue-700' : 'text-gray-500'}`}>按分:</span>
+        <div className="flex items-center">
+          <input
+            type="number"
+            min="1"
+            max="100"
+            value={rateInput}
+            onChange={(e) => setRateInput(parseInt(e.target.value) || 0)}
+            onBlur={() => {
+              let validRate = rateInput;
+              if (isNaN(validRate) || validRate < 1) validRate = 1;
+              if (validRate > 100) validRate = 100;
+              setRateInput(validRate);
+              if (validRate !== col.apportionRate) {
+                onUpdate('apportionRate', validRate);
+                onUpdate('isApportioned', validRate < 100);
+              }
+            }}
+            className={`w-10 text-xs text-right focus:outline-none font-bold bg-transparent ${currentRate < 100 ? 'text-blue-700' : 'text-gray-700'}`}
+          />
+          <span className={`text-[10px] ml-0.5 ${currentRate < 100 ? 'text-blue-700' : 'text-gray-500'}`}>%</span>
+        </div>
       </div>
     </th>
   );
@@ -90,7 +105,18 @@ const ColumnHeader = ({
 
 // 日別明細の入力モーダルコンポーネント
 const ExpenseDetailsModal = ({ target, onClose, onSave, currentYear }: any) => {
-  const [details, setDetails] = useState<{id: string, date: string, amount: number}[]>(target.expense?.details || []);
+  const [details, setDetails] = useState<{id: string, date: string, amount: number}[]>(() => {
+    if (target.expense?.details && target.expense.details.length > 0) {
+      return target.expense.details;
+    } else if (target.expense?.amount > 0) {
+      // 月別入力から日別を開いた場合、デフォルトで末日に金額を割り当てる
+      const monthStr = String(target.month).padStart(2, '0');
+      const lastDay = new Date(parseInt(currentYear), target.month, 0).getDate();
+      const defaultDate = `${currentYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+      return [{ id: crypto.randomUUID(), date: defaultDate, amount: target.expense.amount }];
+    }
+    return [];
+  });
   const [newDate, setNewDate] = useState('');
   const [newAmount, setNewAmount] = useState<number | ''>('');
 
@@ -200,7 +226,7 @@ const ExpenseDetailsModal = ({ target, onClose, onSave, currentYear }: any) => {
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors shadow-sm">
             キャンセル
           </button>
-          <button onClick={() => onSave(target.month, target.col.label, target.col.category, target.col.isApportioned, details)} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow-sm">
+          <button onClick={() => onSave(target.month, target.col.label, target.col.category, target.col.apportionRate ?? (target.col.isApportioned ? target.globalApportionRate * 100 : 100), details)} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow-sm">
             保存して反映
           </button>
         </div>
@@ -214,12 +240,16 @@ const ExpenseCell: React.FC<{
   colIndex: number;
   col: ExpenseColumn;
   expense: any;
-  apportionRate: number;
-  onAmountChange: (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, value: string) => void;
+  globalApportionRate: number;
+  onAmountChange: (month: number, colLabel: string, colCategory: string, colApportionRate: number, value: string) => void;
   onOpenModal: () => void;
-}> = ({ month, colIndex, col, expense, apportionRate, onAmountChange, onOpenModal }) => {
+}> = ({ month, colIndex, col, expense, globalApportionRate, onAmountChange, onOpenModal }) => {
   const amount = expense?.amount ?? '';
-  const hasDetails = expense?.details && expense.details.length > 0;
+  const details = expense?.details || [];
+  const hasDetails = details.length > 0;
+  const isMultipleDetails = details.length > 1; // 複数明細の場合はセルでの直接編集をブロック
+  
+  const colApportionRate = col.apportionRate ?? (col.isApportioned ? Math.round(globalApportionRate * 100) : 100);
   
   const [display, setDisplay] = useState('');
 
@@ -228,12 +258,12 @@ const ExpenseCell: React.FC<{
       setDisplay('');
     } else {
       const str = Number(amount).toLocaleString();
-      setDisplay(col.isApportioned ? `[${str}]` : str);
+      setDisplay(colApportionRate < 100 ? `[${str}]` : str);
     }
-  }, [amount, col.isApportioned]);
+  }, [amount, colApportionRate]);
 
   const handleFocus = () => {
-    if (hasDetails || !display) return;
+    if (isMultipleDetails || !display) return;
     const raw = display.replace(/[^0-9]/g, '');
     if (raw) {
       setDisplay(parseInt(raw, 10).toLocaleString());
@@ -243,7 +273,7 @@ const ExpenseCell: React.FC<{
   };
 
   const handleBlur = () => {
-    if (hasDetails) return;
+    if (isMultipleDetails) return;
     const raw = display.replace(/[^0-9]/g, '');
     const num = parseInt(raw, 10) || 0;
     
@@ -251,13 +281,13 @@ const ExpenseCell: React.FC<{
       setDisplay('');
     } else {
       const str = num.toLocaleString();
-      setDisplay(col.isApportioned ? `[${str}]` : str);
+      setDisplay(colApportionRate < 100 ? `[${str}]` : str);
     }
-    onAmountChange(month, col.label, col.category, col.isApportioned, num.toString());
+    onAmountChange(month, col.label, col.category, colApportionRate, num.toString());
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (hasDetails) return;
+    if (isMultipleDetails) return;
     const raw = e.target.value.replace(/[^0-9]/g, '');
     if (!raw) {
       setDisplay('');
@@ -275,7 +305,15 @@ const ExpenseCell: React.FC<{
       return;
     }
 
-    if (hasDetails) return;
+    if (isMultipleDetails) {
+      // 複数明細のセルに数字や削除キーを入力しようとした場合はポップアップを開く
+      if (/^[0-9]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        onOpenModal();
+      }
+      return;
+    }
+
     const target = e.currentTarget;
     const selectionStart = target.selectionStart;
     const selectionEnd = target.selectionEnd;
@@ -321,10 +359,10 @@ const ExpenseCell: React.FC<{
     }
   };
 
-  const apportioned = col.isApportioned && amount !== '' ? Math.floor(Number(amount) * apportionRate) : 0;
-  const cellBorder = col.isApportioned ? 'border-blue-300' : 'border-gray-200';
+  const apportioned = colApportionRate < 100 && amount !== '' ? Math.floor(Number(amount) * (colApportionRate / 100)) : 0;
+  const cellBorder = colApportionRate < 100 ? 'border-blue-300' : 'border-gray-200';
   const bgColor = hasDetails ? 'bg-gray-100' : 'bg-transparent';
-  const textColor = hasDetails ? 'text-gray-500 font-bold' : 'text-gray-900';
+  const textColor = isMultipleDetails ? 'text-gray-500 font-bold' : 'text-gray-900';
 
   return (
     <td className={`border-b border-r ${cellBorder} p-0 relative group`}>
@@ -342,7 +380,6 @@ const ExpenseCell: React.FC<{
           id={`expense-input-${colIndex}-${month}`}
           type="text"
           inputMode="numeric"
-          readOnly={hasDetails}
           className={`w-full border-0 ${bgColor} py-3 px-2 text-right text-sm focus:ring-2 focus:ring-inset focus:ring-blue-500 ${textColor}`}
           value={display}
           onFocus={handleFocus}
@@ -350,9 +387,9 @@ const ExpenseCell: React.FC<{
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder={hasDetails ? '' : '0'}
-          title={hasDetails ? '日別明細が存在します。編集は(日別)ボタンから行ってください。' : ''}
+          title={isMultipleDetails ? '日別明細が複数存在します。編集は(日別)ボタンから行ってください。' : ''}
         />
-        {col.isApportioned && amount !== '' && amount !== 0 && (
+        {colApportionRate < 100 && amount !== '' && amount !== 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-blue-700 opacity-0 group-hover:opacity-100 pointer-events-none bg-white/90">
             按分後 {apportioned.toLocaleString()}
           </div>
@@ -368,15 +405,7 @@ export const ExpensesScreen: React.FC = () => {
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
 
-  const [rateInput, setRateInput] = useState<string>('100');
-  const [modalTarget, setModalTarget] = useState<{ month: number; col: ExpenseColumn; expense?: any } | null>(null);
-
-  useEffect(() => {
-    if (currentYearData) {
-      const initialRate = currentYearData.apportionRate ?? 1;
-      setRateInput(Math.round(initialRate * 100).toString());
-    }
-  }, [currentYearData?.apportionRate]);
+  const [modalTarget, setModalTarget] = useState<{ month: number; col: ExpenseColumn; expense?: any; globalApportionRate: number } | null>(null);
 
   if (!currentYearData && !appData) {
     return <div className="p-8 text-center text-gray-500">データを読み込み中です...</div>;
@@ -384,9 +413,9 @@ export const ExpensesScreen: React.FC = () => {
 
   const expenses = currentYearData?.expenses || [];
   const columns = currentYearData?.expenseColumns || DEFAULT_EXPENSE_COLUMNS;
-  const rate = currentYearData?.apportionRate ?? 1;
+  const globalRate = currentYearData?.apportionRate ?? 1;
 
-  const handleUpdateColumn = (colIndex: number, field: keyof ExpenseColumn, value: string | boolean) => {
+  const handleUpdateColumn = (colIndex: number, field: keyof ExpenseColumn, value: string | boolean | number) => {
     if (!appData) return;
     const yearData = appData.years[currentYear];
     const newColumns = [...columns];
@@ -402,9 +431,27 @@ export const ExpensesScreen: React.FC = () => {
     if (field === 'category') {
       newExpenses = newExpenses.map(e => e.colLabel === newColumns[colIndex].label ? { ...e, category: value as string } : e);
     }
-    if (field === 'isApportioned') {
-      newExpenses = newExpenses.map(e => e.colLabel === newColumns[colIndex].label ? { ...e, isApportioned: value as boolean } : e);
+    if (field === 'apportionRate' || field === 'isApportioned') {
+      newExpenses = newExpenses.map(e => e.colLabel === newColumns[colIndex].label ? { ...e, [field]: value } : e);
     }
+
+    setAppData({
+      ...appData,
+      years: {
+        ...appData.years,
+        [currentYear]: {
+          ...yearData,
+          expenses: newExpenses,
+          expenseColumns: newColumns,
+        },
+      },
+    });
+  };
+
+  const handleAddColumn = () => {
+    if (!appData) return;
+    const yearData = appData.years[currentYear];
+    const newColumns = [...columns, { label: '', category: '勘定科目', isApportioned: false, apportionRate: 100 }];
 
     setAppData({
       ...appData,
@@ -460,7 +507,7 @@ export const ExpensesScreen: React.FC = () => {
   };
 
   // 直接入力（月まとめ）の更新処理
-  const handleUpdateAmount = (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, value: string) => {
+  const handleUpdateAmount = (month: number, colLabel: string, colCategory: string, colApportionRate: number, value: string) => {
     if (!appData) return;
 
     const amount = parseInt(value, 10) || 0;
@@ -470,10 +517,24 @@ export const ExpensesScreen: React.FC = () => {
     const index = newExpenses.findIndex((e) => e.month === month && e.colLabel === colLabel);
 
     if (index > -1) {
-      if (amount === 0 && (!newExpenses[index].details || newExpenses[index].details.length === 0)) {
+      const existingExpense = newExpenses[index];
+      if (amount === 0 && (!existingExpense.details || existingExpense.details.length === 0)) {
         newExpenses.splice(index, 1);
       } else {
-        newExpenses[index] = { ...newExpenses[index], amount, colLabel, category: colCategory, isApportioned: colIsApportioned };
+        // detailsが1件のみの場合はその金額も更新して日付は保持する
+        const updatedDetails = existingExpense.details?.length === 1 
+          ? [{ ...existingExpense.details[0], amount }] 
+          : existingExpense.details;
+          
+        newExpenses[index] = { 
+          ...existingExpense, 
+          amount, 
+          colLabel, 
+          category: colCategory, 
+          apportionRate: colApportionRate,
+          isApportioned: colApportionRate < 100,
+          details: updatedDetails
+        };
       }
     } else if (amount > 0) {
       newExpenses.push({
@@ -482,7 +543,8 @@ export const ExpensesScreen: React.FC = () => {
         colLabel,
         category: colCategory,
         amount,
-        isApportioned: colIsApportioned,
+        isApportioned: colApportionRate < 100,
+        apportionRate: colApportionRate,
       });
     }
 
@@ -499,7 +561,7 @@ export const ExpensesScreen: React.FC = () => {
   };
 
   // 日別明細モーダルからの保存処理
-  const handleSaveDetails = (month: number, colLabel: string, colCategory: string, colIsApportioned: boolean, details: any[]) => {
+  const handleSaveDetails = (month: number, colLabel: string, colCategory: string, colApportionRate: number, details: any[]) => {
     if (!appData) return;
     const yearData = appData.years[currentYear];
     let newExpenses = [...expenses];
@@ -511,7 +573,14 @@ export const ExpensesScreen: React.FC = () => {
       if (totalAmount === 0 && details.length === 0) {
         newExpenses.splice(index, 1); // 明細がなくなり合計も0なら削除して直接入力に戻す
       } else {
-        newExpenses[index] = { ...newExpenses[index], amount: totalAmount, details, category: colCategory, isApportioned: colIsApportioned };
+        newExpenses[index] = { 
+          ...newExpenses[index], 
+          amount: totalAmount, 
+          details, 
+          category: colCategory, 
+          apportionRate: colApportionRate,
+          isApportioned: colApportionRate < 100
+        };
       }
     } else if (details.length > 0 || totalAmount > 0) {
       newExpenses.push({
@@ -520,7 +589,8 @@ export const ExpensesScreen: React.FC = () => {
         colLabel,
         category: colCategory,
         amount: totalAmount,
-        isApportioned: colIsApportioned,
+        isApportioned: colApportionRate < 100,
+        apportionRate: colApportionRate,
         details,
       });
     }
@@ -538,57 +608,31 @@ export const ExpensesScreen: React.FC = () => {
     setModalTarget(null);
   };
 
-  const handleRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setRateInput(val);
-
-    if (!appData) return;
-    const yearData = appData.years[currentYear];
-    
-    const numValue = val === '' ? 0 : Number(val);
-
-    let validRate = numValue;
-    if (isNaN(validRate) || validRate < 0) validRate = 0;
-    if (validRate > 100) validRate = 100;
-
-    setAppData({
-      ...appData,
-      years: {
-        ...appData.years,
-        [currentYear]: {
-          ...yearData,
-          apportionRate: validRate / 100,
-        },
-      },
-    });
-  };
-
-  const handleRateBlur = () => {
-    if (rateInput === '') {
-      setRateInput('0');
-    } else {
-      let validRate = Number(rateInput);
-      if (isNaN(validRate) || validRate < 0) validRate = 0;
-      if (validRate > 100) validRate = 100;
-      setRateInput(validRate.toString());
-    }
-  };
-
   const getExpense = (month: number, label: string) => {
     return expenses.find((e) => e.month === month && e.colLabel === label);
   };
 
   const getColumnTotal = (label: string) => {
+    const col = columns.find(c => c.label === label);
+    const colRate = col?.apportionRate ?? (col?.isApportioned ? Math.round(globalRate * 100) : 100);
     return expenses.filter((e) => e.colLabel === label)
-      .reduce((sum, e) => sum + (e.isApportioned ? Math.floor(e.amount * rate) : e.amount), 0);
+      .reduce((sum, e) => sum + (colRate < 100 ? Math.floor(e.amount * (colRate / 100)) : e.amount), 0);
   };
 
   const getRowTotal = (month: number) => {
     return expenses.filter((e) => e.month === month)
-      .reduce((sum, e) => sum + (e.isApportioned ? Math.floor(e.amount * rate) : e.amount), 0);
+      .reduce((sum, e) => {
+        const col = columns.find(c => c.label === e.colLabel);
+        const colRate = e.apportionRate ?? col?.apportionRate ?? (col?.isApportioned ? Math.round(globalRate * 100) : 100);
+        return sum + (colRate < 100 ? Math.floor(e.amount * (colRate / 100)) : e.amount);
+      }, 0);
   };
 
-  const grandTotal = expenses.reduce((sum, e) => sum + (e.isApportioned ? Math.floor(e.amount * rate) : e.amount), 0);
+  const grandTotal = expenses.reduce((sum, e) => {
+    const col = columns.find(c => c.label === e.colLabel);
+    const colRate = e.apportionRate ?? col?.apportionRate ?? (col?.isApportioned ? Math.round(globalRate * 100) : 100);
+    return sum + (colRate < 100 ? Math.floor(e.amount * (colRate / 100)) : e.amount);
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -600,27 +644,6 @@ export const ExpensesScreen: React.FC = () => {
           onSave={handleSaveDetails}
         />
       )}
-
-      <div className="bg-white shadow sm:rounded-lg p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-lg leading-6 font-medium text-gray-900">事業用按分比率</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            「按分: 有」に設定した列に入力された金額に対し、ここで設定した事業用の割合が自動的に掛け合わされます。
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex items-center space-x-2">
-          <input
-            type="number"
-            min="0"
-            max="100"
-            value={rateInput}
-            onChange={handleRateChange}
-            onBlur={handleRateBlur}
-            className="block w-24 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-lg border p-2 text-right font-bold text-blue-700"
-          />
-          <span className="text-gray-700 font-medium">%</span>
-        </div>
-      </div>
 
       <div className="bg-white shadow sm:rounded-lg overflow-hidden flex flex-col">
         <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 bg-gray-50">
@@ -652,6 +675,7 @@ export const ExpensesScreen: React.FC = () => {
                     col={col} 
                     onUpdate={(field, value) => handleUpdateColumn(idx, field, value)} 
                     onDelete={() => handleDeleteColumn(idx)}
+                    globalApportionRate={globalRate}
                   />
                 ))}
                 <th className="border-b border-r border-gray-300 bg-gray-50 w-16 align-middle text-center">
@@ -680,9 +704,9 @@ export const ExpensesScreen: React.FC = () => {
                       colIndex={idx}
                       col={col}
                       expense={getExpense(month, col.label)}
-                      apportionRate={rate}
+                      globalApportionRate={globalRate}
                       onAmountChange={handleUpdateAmount}
-                      onOpenModal={() => setModalTarget({ month, col, expense: getExpense(month, col.label) })}
+                      onOpenModal={() => setModalTarget({ month, col, expense: getExpense(month, col.label), globalApportionRate: globalRate })}
                     />
                   ))}
                   <td className="border-b border-r border-gray-200 bg-gray-50/30"></td>
