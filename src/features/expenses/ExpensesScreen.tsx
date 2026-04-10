@@ -115,6 +115,10 @@ const ExpenseDetailsModal = ({ target, onClose, onSave, currentYear }: any) => {
     }
     return [];
   });
+  
+  // 開いた時点の初期状態を保持しておく
+  const [initialDetails] = useState(details);
+  
   const [newDate, setNewDate] = useState('');
   const [newAmount, setNewAmount] = useState<number | ''>('');
 
@@ -143,12 +147,26 @@ const ExpenseDetailsModal = ({ target, onClose, onSave, currentYear }: any) => {
     }
   };
 
+  // 閉じる際の変更検知と警告表示処理
+  const handleClose = () => {
+    const isDetailsChanged = JSON.stringify(initialDetails) !== JSON.stringify(details);
+    const isInputting = newDate !== '' || newAmount !== '';
+
+    if (isDetailsChanged || isInputting) {
+      if (window.confirm('編集中の内容が保存されていません。破棄して閉じますか？')) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleClose}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
           <h3 className="font-bold text-gray-800">{target.month}月 - {target.col.label} の日別明細</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -221,7 +239,7 @@ const ExpenseDetailsModal = ({ target, onClose, onSave, currentYear }: any) => {
         </div>
         
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors shadow-sm">
+          <button onClick={handleClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors shadow-sm">
             キャンセル
           </button>
           <button onClick={() => onSave(target.month, target.col.label, target.col.category, target.col.apportionRate ?? (target.col.isApportioned ? target.globalApportionRate * 100 : 100), details)} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow-sm">
