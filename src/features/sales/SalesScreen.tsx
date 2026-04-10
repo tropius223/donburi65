@@ -205,6 +205,13 @@ export const SalesScreen: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* サジェスト用のデータリストを追加 */}
+      <datalist id="client-list">
+        {clientOptions.map((client, index) => (
+          <option key={index} value={client} />
+        ))}
+      </datalist>
+
       {hasPreviousYearData && hasUncollectedSalesFromPrevYear && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow-sm">
           <div className="flex">
