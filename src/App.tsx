@@ -196,6 +196,7 @@ function App() {
               </select>
             </div>
             
+            {/*
             <button
               onClick={handleDownloadLog}
               className="text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded border border-gray-300 transition-colors hidden sm:block"
@@ -203,6 +204,7 @@ function App() {
             >
               ログDL
             </button>
+            */}
             
             <div className="w-24 flex justify-end">
               {renderSaveStatus()}
