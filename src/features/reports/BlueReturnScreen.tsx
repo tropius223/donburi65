@@ -566,7 +566,7 @@ export const BlueReturnScreen: React.FC = () => {
             </div>
 
             <div className="total fixed" style={{ padding: '15px 20px' }}>
-              <div className="c-low boNo" style={{ border: 'none', padding: 0, display: 'flex', justify-content: 'space-between', alignItems: 'center' }}>
+              <div className="c-low boNo" style={{ border: 'none', padding: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="c-subject__total" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span className="item-Serial" style={{ background: '#197f4a', color: '#fff', borderColor: '#197f4a', fontWeight: 'normal' }}>43</span>
