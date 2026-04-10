@@ -15,6 +15,9 @@ interface AppState {
   setAppData: (data: AppData) => void;
   setCurrentYear: (year: string) => void;
   
+  // ログを記録するアクション
+  addLog: (action: string, details?: string) => void;
+  
   // 現在の年度データを取得するヘルパー
   getCurrentYearData: () => YearData | null;
 }
@@ -32,6 +35,26 @@ export const useStore = create<AppState>((set, get) => ({
   setAppData: (data) => set({ appData: data }),
 
   setCurrentYear: (year) => set({ currentYear: year }),
+
+  // ログ記録の実装
+  addLog: (action, details = '') => {
+    const { appData } = get();
+    if (!appData) return;
+
+    const newLog = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      action,
+      details,
+    };
+
+    set({
+      appData: {
+        ...appData,
+        logs: [...(appData.logs || []), newLog], // 既存のログ配列に追加（なければ空配列から開始）
+      },
+    });
+  },
 
   getCurrentYearData: () => {
     const { appData, currentYear } = get();

@@ -81,3 +81,17 @@ export interface AppData {
     [year: string]: YearData;
   };
 }
+
+export interface OperationLog {
+  id: string;
+  timestamp: string; // ISO 8601形式の日時
+  action: string;    // 操作内容（例: "売上データの追加"）
+  details?: string;  // 補足情報（オプション）
+}
+
+export interface AppData {
+  version: string;
+  userId: string;
+  years: Record<string, YearData>;
+  logs?: OperationLog[]; // 💡 追加: ログを格納する配列（古いデータとの互換性のためオプショナルにする）
+}
