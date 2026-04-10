@@ -259,7 +259,8 @@ const ExpenseCell: React.FC<{
   globalApportionRate: number;
   onAmountChange: (month: number, colLabel: string, colCategory: string, colApportionRate: number, value: string) => void;
   onOpenModal: () => void;
-}> = ({ month, colIndex, col, expense, globalApportionRate, onAmountChange, onOpenModal }) => {
+  onCopyFromPrevious: () => void;
+}> = ({ month, colIndex, col, expense, globalApportionRate, onAmountChange, onOpenModal, onCopyFromPrevious }) => {
   const amount = expense?.amount ?? '';
   const details = expense?.details || [];
   const hasDetails = details.length > 0;
@@ -322,11 +323,18 @@ const ExpenseCell: React.FC<{
     }
 
     if (isMultipleDetails) {
-      // 複数明細のセルに数字や削除キーを入力しようとした場合はポップアップを開く
-      if (/^[0-9]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete') {
+      // 複数明細のセルに数字や削除キー、プラスキーを入力しようとした場合はポップアップを開く
+      if (/^[0-9]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete' || e.key === '+' || e.key === '＋') {
         e.preventDefault();
         onOpenModal();
       }
+      return;
+    }
+
+    // +キー（半角・全角問わず）で上のセルの値をコピー
+    if (e.key === '+' || e.key === '＋') {
+      e.preventDefault();
+      onCopyFromPrevious();
       return;
     }
 
@@ -604,6 +612,15 @@ export const ExpensesScreen: React.FC = () => {
     setModalTarget(null);
   };
 
+  const handleCopyFromPreviousMonth = (month: number, colLabel: string, colCategory: string, colApportionRate: number) => {
+    if (month <= 1) return; // 1月は上のセルがないので何もしない
+    
+    const prevExpense = getExpense(month - 1, colLabel);
+    const amountToCopy = prevExpense ? prevExpense.amount.toString() : '0';
+    
+    handleUpdateAmount(month, colLabel, colCategory, colApportionRate, amountToCopy);
+  };
+
   const getExpense = (month: number, label: string) => {
     return expenses.find((e) => e.month === month && e.colLabel === label);
   };
@@ -703,6 +720,7 @@ export const ExpensesScreen: React.FC = () => {
                       globalApportionRate={globalRate}
                       onAmountChange={handleUpdateAmount}
                       onOpenModal={() => setModalTarget({ month, col, expense: getExpense(month, col.label), globalApportionRate: globalRate })}
+                      onCopyFromPrevious={() => handleCopyFromPreviousMonth(month, col.label, col.category, col.apportionRate ?? (col.isApportioned ? Math.round(globalRate * 100) : 100))}
                     />
                   ))}
                   <td className="border-b border-r border-gray-200 bg-gray-50/30"></td>
