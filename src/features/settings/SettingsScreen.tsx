@@ -31,7 +31,7 @@ const performCarryOverCalc = (prevData: YearData, prevYearStr: string): OpeningB
   const totalSales = prevSales.reduce((sum: number, sale: any) => sum + (sale.amount || 0), 0);
   const totalPurchases = prevPurchases.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
   const totalExpenses = prevExpenses.reduce((sum: number, exp: any) => {
-    return sum + calculateApportionedExpense(exp.amount || 0, exp.isApportioned, prevData.apportionRate || 1);
+    return sum + calculateApportionedExpense(exp.amount || 0, exp.isApportioned, prevData.apportionRate || 1, exp.apportionRate);
   }, 0);
   const closingInventory = prevInventory.reduce((sum: number, item: any) => sum + (item.totalAmount || 0), 0);
   
@@ -68,6 +68,7 @@ export const SettingsScreen: React.FC = () => {
   const appData = useStore((state) => state.appData);
   const currentYear = useStore((state) => state.currentYear);
   const setAppData = useStore((state) => state.setAppData);
+  const addLog = useStore((state) => state.addLog);
   const currentYearData = appData?.years[currentYear];
 
   // 前年のデータを取得（フックの前に定義）
@@ -156,13 +157,21 @@ export const SettingsScreen: React.FC = () => {
 
   const handleBalanceChange = (key: string, value: string) => {
     setInputValues(prev => ({ ...prev, [key]: value }));
+  };
 
+  const handleBalanceBlur = (key: string, value: string) => {
     let numValue = parseInt(value, 10);
     if (isNaN(numValue)) numValue = 0;
 
-    const newBalances = { ...openingBalances, [key]: numValue };
-    setOpeningBalances(newBalances);
-    saveSettings(newBalances, prevReceivables);
+    if (openingBalances[key] !== numValue) {
+      const newBalances = { ...openingBalances, [key]: numValue };
+      setOpeningBalances(newBalances);
+      saveSettings(newBalances, prevReceivables);
+      addLog('期首残高の更新', `科目: ${key}, 金額: ${numValue}円`);
+    }
+
+    // フォーカスが外れた際に、表示を整形する
+    setInputValues(prev => ({ ...prev, [key]: numValue === 0 ? '' : numValue.toString() }));
   };
 
   const handleAddPrevReceivable = () => {
@@ -170,14 +179,17 @@ export const SettingsScreen: React.FC = () => {
     const newItems = [...prevReceivables, { id: crypto.randomUUID(), date: newRecDate, amount: Number(newRecAmount) }];
     setPrevReceivables(newItems);
     saveSettings(openingBalances, newItems);
+    addLog('前年売掛金回収予定の追加', `入金日: ${newRecDate}, 金額: ${newRecAmount}円`);
     setNewRecDate('');
     setNewRecAmount('');
   };
 
   const handleDeletePrevReceivable = (id: string) => {
+    const target = prevReceivables.find(r => r.id === id);
     const newItems = prevReceivables.filter(r => r.id !== id);
     setPrevReceivables(newItems);
     saveSettings(openingBalances, newItems);
+    if (target) addLog('前年売掛金回収予定の削除', `入金日: ${target.date}, 金額: ${target.amount}円`);
   };
 
   const handleRecKeyDown = (e: React.KeyboardEvent) => {
@@ -220,6 +232,7 @@ export const SettingsScreen: React.FC = () => {
       } else {
         alert('前年の期末残高を計算し、画面に反映しました。');
       }
+      addLog('前年データからの期首残高再計算');
     }
   };
 
@@ -240,6 +253,7 @@ export const SettingsScreen: React.FC = () => {
           }
         }
       });
+      addLog('年度データの初期化', `${currentYear}年度のデータをリセットしました`);
     }
   };
 
@@ -260,6 +274,10 @@ export const SettingsScreen: React.FC = () => {
             onChange={(e) => {
               const rawValue = e.target.value.replace(/[^-0-9]/g, '');
               handleBalanceChange(accountName, rawValue);
+            }}
+            onBlur={(e) => {
+              const rawValue = e.target.value.replace(/[^-0-9]/g, '');
+              handleBalanceBlur(accountName, rawValue);
             }}
             className={`focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-8 sm:text-sm rounded-md py-1.5 border text-right transition-colors ${!recommended ? 'border-gray-200 bg-gray-50 text-gray-600' : 'border-gray-300'}`}
             placeholder={recommended ? "0" : "0（非推奨）"}

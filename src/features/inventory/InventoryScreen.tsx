@@ -83,6 +83,7 @@ export const InventoryScreen: React.FC = () => {
   const appData = useStore((state) => state.appData);
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
+  const addLog = useStore((state) => state.addLog);
 
   const [newItemName, setNewItemName] = useState('');
   const [newUnitPrice, setNewUnitPrice] = useState<number | ''>('');
@@ -119,11 +120,14 @@ export const InventoryScreen: React.FC = () => {
   const handleUpdateInventory = (updatedItem: InventoryItem) => {
     const updatedInventory = inventory.map((i) => (i.id === updatedItem.id ? updatedItem : i));
     updateStoreInventory(updatedInventory);
+    addLog('棚卸データの更新', `商品名: ${updatedItem.itemName}, 金額: ${updatedItem.totalAmount}円`);
   };
 
   const handleDeleteInventory = (id: string) => {
+    const target = inventory.find(i => i.id === id);
     const updatedInventory = inventory.filter((i) => i.id !== id);
     updateStoreInventory(updatedInventory);
+    if (target) addLog('棚卸データの削除', `商品名: ${target.itemName}, 金額: ${target.totalAmount}円`);
   };
 
   const handleAddInventory = () => {
@@ -138,6 +142,7 @@ export const InventoryScreen: React.FC = () => {
     };
 
     updateStoreInventory([newInventoryItem, ...inventory]);
+    addLog('棚卸データの追加', `商品名: ${newItemName}, 金額: ${newInventoryItem.totalAmount}円`);
 
     setNewItemName('');
     setNewUnitPrice('');

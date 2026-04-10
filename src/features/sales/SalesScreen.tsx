@@ -89,6 +89,20 @@ export const SalesScreen: React.FC = () => {
   const appData = useStore((state) => state.appData);
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
+  const addLog = useStore((state) => state.addLog);
+
+  // 前年の未回収売掛金が存在するかどうかの判定
+  const prevYear = (parseInt(currentYear) - 1).toString();
+  const prevYearDataForUI = appData?.years[prevYear];
+  const hasPreviousYearData = !!prevYearDataForUI;
+
+  const uncollectedSalesFromPrevYear = React.useMemo(() => {
+    if (!prevYearDataForUI || !prevYearDataForUI.sales) return 0;
+    return prevYearDataForUI.sales
+      .filter((s: any) => !s.depositDate || s.depositDate > `${prevYear}-12-31`)
+      .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+  }, [prevYearDataForUI, prevYear]);
+  const hasUncollectedSalesFromPrevYear = uncollectedSalesFromPrevYear > 0;
 
   // 新規入力行のステート
   const [newSalesDate, setNewSalesDate] = useState('');
@@ -138,11 +152,14 @@ export const SalesScreen: React.FC = () => {
   const handleUpdateSale = (updatedSale: Sale) => {
     const updatedSales = sales.map((s) => (s.id === updatedSale.id ? updatedSale : s));
     updateStoreSales(updatedSales);
+    addLog('売上データの更新', `売上先: ${updatedSale.client}, 金額: ${updatedSale.amount}円`);
   };
 
   const handleDeleteSale = (id: string) => {
+    const target = sales.find(s => s.id === id);
     const updatedSales = sales.filter((s) => s.id !== id);
     updateStoreSales(updatedSales);
+    if (target) addLog('売上データの削除', `売上先: ${target.client}, 金額: ${target.amount}円`);
   };
 
   const handleNewAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,6 +186,7 @@ export const SalesScreen: React.FC = () => {
     };
 
     updateStoreSales([...sales, newSale]);
+    addLog('売上データの追加', `売上先: ${newClient}, 金額: ${newAmount}円`);
 
     // 入力欄をクリア
     setNewSalesDate('');
@@ -187,12 +205,24 @@ export const SalesScreen: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* datalistを配置 */}
-      <datalist id="client-list">
-        {clientOptions.map((client, idx) => (
-          <option key={idx} value={client} />
-        ))}
-      </datalist>
+      {hasPreviousYearData && hasUncollectedSalesFromPrevYear && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow-sm">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-800 font-bold mb-1">【前年から繰り越された未回収の売掛金があります】</p>
+              <p className="text-sm text-yellow-700 leading-relaxed">
+                前年（{prevYear}年）の帳簿に、入金日が未定（または本年以降）の売上（計 {uncollectedSalesFromPrevYear.toLocaleString()} 円）が残っています。<br/>
+                入金日が確定しだい、画面上部の「年度」を <strong>{prevYear}年</strong> に切り替えて、該当データに「入金日」を入力してください。
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white shadow sm:rounded-lg overflow-hidden flex flex-col">
         <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 bg-gray-50">

@@ -429,6 +429,7 @@ export const ExpensesScreen: React.FC = () => {
   const appData = useStore((state) => state.appData);
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
+  const addLog = useStore((state) => state.addLog);
 
   const [modalTarget, setModalTarget] = useState<{ month: number; col: ExpenseColumn; expense?: any; globalApportionRate: number } | null>(null);
 
@@ -471,6 +472,7 @@ export const ExpensesScreen: React.FC = () => {
         },
       },
     });
+    addLog('費用列の更新', `対象: ${oldLabel} -> ${field} を変更`);
   };
 
   const handleAddColumn = () => {
@@ -488,6 +490,7 @@ export const ExpensesScreen: React.FC = () => {
         },
       },
     });
+    addLog('費用列の追加', '新しい列を追加しました');
   };
 
   const handleDeleteColumn = (colIndex: number) => {
@@ -511,6 +514,7 @@ export const ExpensesScreen: React.FC = () => {
         },
       },
     });
+    addLog('費用列の削除', `対象: ${labelToRemove}`);
   };
 
   const handleUpdateAmount = (month: number, colLabel: string, colCategory: string, colApportionRate: number, value: string) => {
@@ -563,6 +567,12 @@ export const ExpensesScreen: React.FC = () => {
         },
       },
     });
+
+    if (amount === 0) {
+      addLog('費用データの削除', `${month}月, 列: ${colLabel}`);
+    } else {
+      addLog('費用データの更新', `${month}月, 列: ${colLabel}, 金額: ${amount}円`);
+    }
   };
 
   const handleSaveDetails = (month: number, colLabel: string, colCategory: string, colApportionRate: number, details: any[]) => {
@@ -610,6 +620,11 @@ export const ExpensesScreen: React.FC = () => {
       },
     });
     setModalTarget(null);
+    addLog('費用日別明細の更新', `${month}月, 列: ${colLabel}, 合計: ${totalAmount}円`);
+  };
+
+  const getExpense = (month: number, label: string) => {
+    return expenses.find((e) => e.month === month && e.colLabel === label);
   };
 
   const handleCopyFromPreviousMonth = (month: number, colLabel: string, colCategory: string, colApportionRate: number) => {
@@ -619,10 +634,6 @@ export const ExpensesScreen: React.FC = () => {
     const amountToCopy = prevExpense ? prevExpense.amount.toString() : '0';
     
     handleUpdateAmount(month, colLabel, colCategory, colApportionRate, amountToCopy);
-  };
-
-  const getExpense = (month: number, label: string) => {
-    return expenses.find((e) => e.month === month && e.colLabel === label);
   };
 
   const getColumnTotal = (label: string) => {

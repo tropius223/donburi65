@@ -90,6 +90,7 @@ export const PurchasesScreen: React.FC = () => {
   const appData = useStore((state) => state.appData);
   const setAppData = useStore((state) => state.setAppData);
   const currentYear = useStore((state) => state.currentYear);
+  const addLog = useStore((state) => state.addLog);
 
   const [newDate, setNewDate] = useState('');
   const [newSupplier, setNewSupplier] = useState('');
@@ -135,11 +136,14 @@ export const PurchasesScreen: React.FC = () => {
   const handleUpdatePurchase = (updatedPurchase: Purchase) => {
     const updatedPurchases = purchases.map((p) => (p.id === updatedPurchase.id ? updatedPurchase : p));
     updateStorePurchases(updatedPurchases);
+    addLog('仕入データの更新', `仕入先: ${updatedPurchase.supplier}, 金額: ${updatedPurchase.amount}円`);
   };
 
   const handleDeletePurchase = (id: string) => {
+    const target = purchases.find(p => p.id === id);
     const updatedPurchases = purchases.filter((p) => p.id !== id);
     updateStorePurchases(updatedPurchases);
+    if (target) addLog('仕入データの削除', `仕入先: ${target.supplier}, 金額: ${target.amount}円`);
   };
 
   const handleNewAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,6 +169,7 @@ export const PurchasesScreen: React.FC = () => {
     };
 
     updateStorePurchases([...purchases, newPurchase]);
+    addLog('仕入データの追加', `仕入先: ${newSupplier}, 金額: ${newAmount}円`);
 
     setNewDate('');
     setNewSupplier('');
