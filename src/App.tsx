@@ -123,6 +123,43 @@ function App() {
     { id: 'blue-return', label: '青色申告' },
   ];
 
+  const handleDownloadLog = () => {
+    if (!appData || !appData.logs || appData.logs.length === 0) {
+      alert('ダウンロードするログデータがありません。');
+      return;
+    }
+
+    const escapeCSV = (str: string | undefined) => {
+      if (!str) return '';
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+
+    const headers = ['日時', '操作内容', '詳細'];
+    const csvRows = [headers.join(',')];
+
+    appData.logs.forEach(log => {
+      const dateStr = new Date(log.timestamp).toLocaleString('ja-JP');
+      const row = [
+        escapeCSV(dateStr),
+        escapeCSV(log.action),
+        escapeCSV(log.details)
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    // Excelで開いた際の文字化けを防ぐためにBOM(Byte Order Mark)を付与
+    const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `donburi_log_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const renderSaveStatus = () => {
     switch (saveStatus) {
       case 'saved':
@@ -158,6 +195,14 @@ function App() {
                 <option value="2025">2025年</option>
               </select>
             </div>
+            
+            <button
+              onClick={handleDownloadLog}
+              className="text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded border border-gray-300 transition-colors hidden sm:block"
+              title="操作ログをCSVで出力"
+            >
+              ログDL
+            </button>
             
             <div className="w-24 flex justify-end">
               {renderSaveStatus()}
