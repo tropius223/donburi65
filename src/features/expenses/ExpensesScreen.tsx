@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../hooks/useStore';
 import type { ExpenseColumn } from '../../types';
 
-// 選択可能な勘定科目のリスト
 const ACCOUNT_CATEGORIES = [
   '租税公課', '荷造運賃', '水道光熱費', '旅費交通費', '通信費', 
   '広告宣伝費', '接待交際費', '損害保険料', '修繕費', '消耗品費', 
@@ -103,7 +102,6 @@ const ColumnHeader = ({
   );
 };
 
-// 日別明細の入力モーダルコンポーネント
 const ExpenseDetailsModal = ({ target, onClose, onSave, currentYear }: any) => {
   const [details, setDetails] = useState<{id: string, date: string, amount: number}[]>(() => {
     if (target.expense?.details && target.expense.details.length > 0) {
@@ -380,6 +378,7 @@ const ExpenseCell: React.FC<{
           id={`expense-input-${colIndex}-${month}`}
           type="text"
           inputMode="numeric"
+          readOnly={hasDetails && isMultipleDetails}
           className={`w-full border-0 ${bgColor} py-3 px-2 text-right text-sm focus:ring-2 focus:ring-inset focus:ring-blue-500 ${textColor}`}
           value={display}
           onFocus={handleFocus}
@@ -459,24 +458,6 @@ export const ExpensesScreen: React.FC = () => {
         ...appData.years,
         [currentYear]: {
           ...yearData,
-          expenses: newExpenses,
-          expenseColumns: newColumns,
-        },
-      },
-    });
-  };
-
-  const handleAddColumn = () => {
-    if (!appData) return;
-    const yearData = appData.years[currentYear];
-    const newColumns = [...columns, { label: '', category: '勘定科目', isApportioned: false }];
-
-    setAppData({
-      ...appData,
-      years: {
-        ...appData.years,
-        [currentYear]: {
-          ...yearData,
           expenseColumns: newColumns,
         },
       },
@@ -506,7 +487,6 @@ export const ExpensesScreen: React.FC = () => {
     });
   };
 
-  // 直接入力（月まとめ）の更新処理
   const handleUpdateAmount = (month: number, colLabel: string, colCategory: string, colApportionRate: number, value: string) => {
     if (!appData) return;
 
@@ -521,7 +501,6 @@ export const ExpensesScreen: React.FC = () => {
       if (amount === 0 && (!existingExpense.details || existingExpense.details.length === 0)) {
         newExpenses.splice(index, 1);
       } else {
-        // detailsが1件のみの場合はその金額も更新して日付は保持する
         const updatedDetails = existingExpense.details?.length === 1 
           ? [{ ...existingExpense.details[0], amount }] 
           : existingExpense.details;
@@ -560,7 +539,6 @@ export const ExpensesScreen: React.FC = () => {
     });
   };
 
-  // 日別明細モーダルからの保存処理
   const handleSaveDetails = (month: number, colLabel: string, colCategory: string, colApportionRate: number, details: any[]) => {
     if (!appData) return;
     const yearData = appData.years[currentYear];
@@ -571,7 +549,7 @@ export const ExpensesScreen: React.FC = () => {
 
     if (index > -1) {
       if (totalAmount === 0 && details.length === 0) {
-        newExpenses.splice(index, 1); // 明細がなくなり合計も0なら削除して直接入力に戻す
+        newExpenses.splice(index, 1);
       } else {
         newExpenses[index] = { 
           ...newExpenses[index], 
@@ -650,8 +628,8 @@ export const ExpensesScreen: React.FC = () => {
           <div>
             <h3 className="text-lg leading-6 font-medium text-gray-900">費用帳</h3>
             <p className="mt-1 text-sm text-gray-500">
-              列名・科目・按分の有無を自由に変更できます。下のセルに金額を入力してください。<br/>
-              セルにカーソルを合わせると表示される「(日別)」ボタンから、日付ごとの詳細な記帳も可能です。
+              列名・科目・按分率を自由に変更できます。下のセルに金額を入力してください。<br/>
+              セルにカーソルを合わせると表示される「(日別)」ボタンやスペースキーから、日付ごとの詳細な記帳も可能です。
             </p>
           </div>
           <div className="text-right">
