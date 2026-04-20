@@ -123,6 +123,7 @@ function App() {
     { id: 'blue-return', label: '青色申告' },
   ];
 
+  /*
   const handleDownloadLog = () => {
     if (!appData || !appData.logs || appData.logs.length === 0) {
       alert('ダウンロードするログデータがありません。');
@@ -159,6 +160,7 @@ function App() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+  */
 
   const renderSaveStatus = () => {
     switch (saveStatus) {
